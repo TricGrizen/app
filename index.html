@@ -52,7 +52,8 @@ html,body{margin:0;padding:0;background:#000;color:#9a9aa2;min-height:100%;
   </a>
   <div id="inst">手机装成 app：Safari 底部 分享 ▸「添加到主屏幕」</div>
   <div id="foot">
-    <span id="bld">55ab55d0</span> · <a id="upd">检查更新</a> <span id="upmsg"></span><br>
+    <span id="fzrow"><a id="fzm">A−</a> <span id="fzv">100%</span> <a id="fzp">A+</a></span><br>
+    <span id="bld">6bea66f5</span> · <a id="upd">检查更新</a> <span id="upmsg"></span><br>
     右下 ⇅ 配置云档同步 · 三端同一份进度
   </div>
 </div>
@@ -77,6 +78,17 @@ function renderCounts(){
     el.textContent=g&&nk(g.done)?("点 "+nk(g.done)+"/406 · 题 "+nk(g.seen)+"/752"):"未启";}
 }
 renderCounts();
+/* 字号（域 0.5~3.0 步 0.1，宽域亲令；存本机 ky_hub_fz） */
+(function(){
+  var K="ky_hub_fz",v=parseFloat(localStorage.getItem(K))||1;
+  function ap(){v=Math.min(3.0,Math.max(0.5,Math.round(v*10)/10));
+    document.documentElement.style.fontSize=(16*v)+"px";
+    document.getElementById("fzv").textContent=Math.round(v*100)+"%";
+    try{localStorage.setItem(K,v);}catch(e){}}
+  document.getElementById("fzm").addEventListener("click",function(){v-=0.1;ap();});
+  document.getElementById("fzp").addEventListener("click",function(){v+=0.1;ap();});
+  ap();
+})();
 /* 云档同步：枢纽即总台（六店全挂，token 一处配置三端共用） */
 if(window.KySync){
   KySync.mount({

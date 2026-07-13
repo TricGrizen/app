@@ -286,12 +286,12 @@ function saved(){
 
 /* ---------------- 面板 UI（克制灰阶 · 黑底） ---------------- */
 var UI_CSS=[
-"#kysync-btn{position:fixed;z-index:9990;right:10px;bottom:10px;width:30px;height:30px;line-height:30px;text-align:center;",
+"#kysync-btn{position:fixed;z-index:9990;right:10px;bottom:44px;width:30px;height:30px;line-height:30px;text-align:center;",  /* 44px=让开各壳底栏与 408 字号钮 */
 " color:#3c3c44;font-size:14px;cursor:pointer;user-select:none;-webkit-user-select:none;border-radius:50%;transition:color .25s;}",
 "#kysync-btn:hover{color:#8a8a94;}",
 "#kysync-btn.kys-on{color:#5a5240;}#kysync-btn.kys-on:hover{color:#a8965e;}",
 "#kysync-btn.kys-err{color:#6e3a3a;}",
-"#kysync-panel{position:fixed;z-index:9991;right:12px;bottom:46px;width:19.5rem;background:#0a0a0c;border:1px solid #232329;",
+"#kysync-panel{position:fixed;z-index:9991;right:12px;bottom:80px;width:19.5rem;background:#0a0a0c;border:1px solid #232329;",
 " border-radius:6px;padding:.9rem .95rem;font-size:.72rem;line-height:1.6;color:#9a9aa2;display:none;",
 " box-shadow:0 8px 30px rgba(0,0,0,.55);text-align:left;}",
 "#kysync-panel.show{display:block;}",
@@ -410,25 +410,28 @@ function mobilePatch(opt){
   }catch(e){}
   if(!("ontouchstart" in window))return;
   var st=document.createElement("style");
-  st.textContent="body{touch-action:manipulation;}"
+  /* touch-action 必须落在命中目标上（只挂 body 时后代仍会吃双击缩放手势——手机双击查词难产的主嫌） */
+  st.textContent="body,body *{touch-action:manipulation;}"
     +(opt.calloutSel?opt.calloutSel+"{-webkit-touch-callout:none;}":"")                    /* 只禁系统长按菜单（保留选区能力） */
     +(opt.noSelectSel?opt.noSelectSel+"{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;}":"");
   document.head.appendChild(st);
-  /* 双 tap → 合成 dblclick（iOS Safari 触屏不产原生 dblclick；≤330ms/≤30px） */
-  var lt=0,lx=0,ly=0;
+  /* 双 tap → 合成 dblclick（iOS Safari 触屏不产原生 dblclick）
+     宽容参数：≤450ms/≤44px；派发用「第一击」的坐标与元素——第二击手指常漂到邻词/空白 */
+  var lt=0,lx=0,ly=0,lel=null;
   document.addEventListener("touchend",function(e){
     if(e.touches&&e.touches.length)return;
     var t=e.changedTouches&&e.changedTouches[0];if(!t)return;
     if(e.target&&e.target.closest&&e.target.closest("input,textarea,select,#kysync-panel"))return;
     var n=Date.now();
-    var db=(n-lt)<330&&Math.hypot(t.clientX-lx,t.clientY-ly)<30;
-    lt=db?0:n;lx=t.clientX;ly=t.clientY;
-    if(!db)return;
-    if(opt.wordSelect)selectWordAt(t.clientX,t.clientY);
-    var tgt=document.elementFromPoint(t.clientX,t.clientY)||document.body;
+    var db=(n-lt)<450&&Math.hypot(t.clientX-lx,t.clientY-ly)<44;
+    if(!db){lt=n;lx=t.clientX;ly=t.clientY;lel=document.elementFromPoint(t.clientX,t.clientY);return;}
+    var px=lx,py=ly,pel=(lel&&lel.isConnected)?lel:null;
+    lt=0;lel=null;
+    if(opt.wordSelect)selectWordAt(px,py);
+    var tgt=pel||document.elementFromPoint(px,py)||document.body;
     var ev;
-    try{ev=new MouseEvent("dblclick",{bubbles:true,cancelable:true,view:window,clientX:t.clientX,clientY:t.clientY});}
-    catch(err){ev=document.createEvent("MouseEvents");ev.initMouseEvent("dblclick",true,true,window,2,0,0,t.clientX,t.clientY,false,false,false,false,0,null);}
+    try{ev=new MouseEvent("dblclick",{bubbles:true,cancelable:true,view:window,clientX:px,clientY:py});}
+    catch(err){ev=document.createEvent("MouseEvents");ev.initMouseEvent("dblclick",true,true,window,2,0,0,px,py,false,false,false,false,0,null);}
     tgt.dispatchEvent(ev);
   },{passive:true});
   function selectWordAt(x,y){ /* 给「读选区」型双击处理器铺路：程序化选中所点单词 */
@@ -443,6 +446,26 @@ function mobilePatch(opt){
       var sel=window.getSelection();sel.removeAllRanges();sel.addRange(rng);
     }catch(e){}
   }
+}
+
+/* ---------------- 历史栈垫片（PROGRESS AI 追记四）：手机侧滑/浏览器返回=上一层而非直接离页
+   levels=[{isOpen,close}] 自顶向底；「有层敞开↔历史签在位」用 300ms 轮询对齐（免侵入包裹壳内每个开关函数）：
+   开层→补签 pushState；侧滑/返回→pop 签并 close() 最上层（层下还有层则轮询自动再补签，逐层可退）；
+   UI 键自关→history.back() 消签。签全消后再滑=浏览器原生离页（回枢纽）。 */
+function histShim(levels){
+  try{if(!window.history||!history.pushState||!levels||!levels.length)return;}catch(e){return;}
+  var tagged=false;
+  function top(){for(var i=0;i<levels.length;i++){try{if(levels[i].isOpen())return levels[i];}catch(e){}}return null;}
+  window.addEventListener("popstate",function(){
+    var L=top();
+    if(L){tagged=false;try{L.close();}catch(e){}}
+  });
+  setInterval(function(){
+    var open=!!top();
+    if(open&&!tagged){tagged=true;try{history.pushState({ky:1},"");}catch(e){}}
+    else if(!open&&tagged){tagged=false;
+      if(history.state&&history.state.ky){try{history.back();}catch(e){}}}
+  },300);
 }
 
 /* ---------------- 装配 ---------------- */
@@ -470,7 +493,7 @@ function lsStores(keys){
     set:function(d){try{localStorage.setItem(k,JSON.stringify(d));}catch(e){}}
   };});
 }
-return {mount:mount,saved:saved,syncNow:syncNow,lsStores:lsStores,
+return {mount:mount,saved:saved,syncNow:syncNow,lsStores:lsStores,histShim:histShim,
         _m:{m408:m408,mWugeng:mWugeng,mMath:mMath,mWB:mWB,mArr:mArr,STORES:STORES,stab:stab},
         cfg:loadCfg,enabled:enabled};
 })();
