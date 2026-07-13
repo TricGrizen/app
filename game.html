@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>408 · 英一真题 — 灯下</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#000000">
+<style>
+html,body{margin:0;padding:0;background:#000;color:#9a9aa2;height:100%;
+  font:15px/1.8 -apple-system,"Segoe UI","Microsoft YaHei",sans-serif;-webkit-font-smoothing:antialiased;}
+#gate{max-width:20rem;margin:0 auto;padding:26vh 1.4rem 0;text-align:center;}
+#gt{font-size:1.05rem;letter-spacing:.35em;color:#c9c9cf;margin-bottom:.4rem;}
+#gs{font-size:.72rem;color:#55555c;margin-bottom:2.2rem;letter-spacing:.12em;}
+#gp{width:100%;box-sizing:border-box;background:#0c0c0f;border:1px solid #26262c;border-radius:4px;
+  color:#d4d4da;padding:.6rem .8rem;font-size:1rem;text-align:center;letter-spacing:.18em;outline:none;}
+#gp:focus{border-color:#4a4232;}
+#gb{margin-top:1.1rem;background:#131317;border:1px solid #4a4232;color:#b09a5e;border-radius:4px;
+  padding:.5rem 2.2rem;font-size:.85rem;letter-spacing:.3em;cursor:pointer;}
+#gb:hover{border-color:#6a5f42;color:#d0b874;}
+#gm{margin-top:1.2rem;font-size:.72rem;color:#6e6e76;min-height:1.4em;}
+#gm.err{color:#a05050;}
+#gh{margin-top:3rem;font-size:.66rem;color:#3f3f46;line-height:1.7;}
+.dot{display:inline-block;width:4px;height:4px;border-radius:50%;background:#a8965e;
+  vertical-align:.32em;margin-left:.35rem;animation:br 5.5s ease-in-out infinite;}
+@keyframes br{0%,100%{opacity:.25}50%{opacity:.85}}
+</style>
+</head>
+<body>
+<div id="gate">
+  <div id="gt">四〇八 · 真题<span class="dot"></span></div>
+  <div id="gs">此卷上锁 · 灯下私藏</div>
+  <input id="gp" type="password" placeholder="通行码" autocomplete="off" autocapitalize="off">
+  <div><button id="gb">开 卷</button></div>
+  <div id="gm"></div>
+  <div id="gh">通行码在主力机 tools/app/gate_pass.txt · 本机输对一次即长记<br>灯下 55ab55d0</div>
+</div>
+<script>
+(function(){
+"use strict";
+var GK="ky_gate_v1";
+var $p=document.getElementById("gp"),$b=document.getElementById("gb"),$m=document.getElementById("gm");
+function msg(t,err){$m.textContent=t;$m.className=err?"err":"";}
+function b64b(b){b=String(b).replace(/\s/g,"");var s=atob(b),a=new Uint8Array(s.length);for(var i=0;i<s.length;i++)a[i]=s.charCodeAt(i);return a;}
+function fetchJson(u){return fetch(u,{cache:"no-cache"}).then(function(r){if(!r.ok)throw new Error(u+" HTTP "+r.status);return r.json();});}
+function fetchText(u){return fetch(u,{cache:"no-cache"}).then(function(r){if(!r.ok)throw new Error(u+" HTTP "+r.status);return r.text();});}
+function derive(pass,salt,it){
+  var enc=new TextEncoder();
+  return crypto.subtle.importKey("raw",enc.encode(pass),{name:"PBKDF2"},false,["deriveKey"]).then(function(km){
+    return crypto.subtle.deriveKey({name:"PBKDF2",salt:salt,iterations:it,hash:"SHA-256"},km,
+      {name:"AES-GCM",length:256},false,["decrypt"]);
+  });
+}
+function openOne(pass,env){
+  return derive(pass,b64b(env.salt),env.it||300000).then(function(key){
+    return crypto.subtle.decrypt({name:"AES-GCM",iv:b64b(env.iv)},key,b64b(env.ct));
+  }).then(function(buf){return new TextDecoder().decode(buf);});
+}
+function jsSafe(s){return s.replace(/<\//g,"<\\/");}
+function assemble(shell,d408,dexam){
+  var a1='<script src="data.js"><\/script>', a2='<script src="exam_data.js"><\/script>';
+  if(shell.indexOf(a1)<0||shell.indexOf(a2)<0)throw new Error("壳锚点缺失（包损，换新包）");
+  return shell.replace(a1,"<script>"+jsSafe(d408)+"<\/script>")
+              .replace(a2,"<script>"+jsSafe(dexam)+"<\/script>");
+}
+function unlock(pass,silent){
+  if(!pass){msg("先输通行码",true);return;}
+  if(!(window.crypto&&crypto.subtle)){msg("此环境无 WebCrypto（须 https 或本地）",true);return;}
+  msg(silent?"开卷 · 取件…":"验码 · 取件…");
+  Promise.all([fetchText("./game_shell.html"),fetchJson("./data_408.enc"),fetchJson("./data_exam.enc")])
+  .then(function(rs){
+    msg("开卷 · 解锁…");
+    return Promise.all([openOne(pass,rs[1]),openOne(pass,rs[2])]).then(function(ds){
+      try{localStorage.setItem(GK,JSON.stringify({p:pass,t:Date.now()}));}catch(e){}
+      msg("开卷 · 落卷…");
+      var html=assemble(rs[0],ds[0],ds[1]);
+      document.open();document.write(html);document.close();
+    });
+  })
+  .catch(function(e){
+    var s=String(e&&e.message||e);
+    if(/OperationError|decrypt/i.test(s)){try{localStorage.removeItem(GK);}catch(x){}msg("码不对（或包与码不配）",true);}
+    else if(/HTTP|fetch|Failed/i.test(s))msg("拿不到卷（离线且未缓存？）："+s,true);
+    else msg("开卷失败："+s.slice(0,60),true);
+  });
+}
+$b.addEventListener("click",function(){unlock($p.value.trim(),false);});
+$p.addEventListener("keydown",function(e){if(e.key==="Enter")unlock($p.value.trim(),false);});
+/* 深链免输：#gp=码（无头验证/救急用，读后即抹）；平时走本机长记 */
+var mh=location.hash.match(/[#&]gp=([^&]+)/);
+if(mh){try{history.replaceState(null,"",location.pathname+location.search);}catch(e){}
+  unlock(decodeURIComponent(mh[1]),true);}
+else{
+  var st=null;try{st=JSON.parse(localStorage.getItem(GK)||"null");}catch(e){}
+  if(st&&st.p)unlock(st.p,true); else try{$p.focus();}catch(e){}
+}
+if("serviceWorker" in navigator&&location.protocol!=="file:"){try{navigator.serviceWorker.register("./sw.js");}catch(e){}}
+})();
+</script>
+</body>
+</html>

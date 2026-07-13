@@ -1,0 +1,2442 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>408</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html { font-size:17px; }
+  @media (min-width:2200px) { html { font-size:24px; } }
+  @media (min-width:3200px) { html { font-size:33px; } }
+  /* Surface 3:2 高分屏适配（守渡 2026-07）：WE 网页壁纸按物理分辨率渲染（Surface Pro 8=2880×1920，267PPI 下 24px 物理偏小）。
+     两条仅在 3:2 高分屏 / ≤1600 窄视口触发；主力机 4K 3840×2160(16:9) 数学上恒不命中，回程零恢复。 */
+  @media (min-width:2200px) and (max-aspect-ratio:8/5) { html { font-size:calc(32px * var(--fz,1)); } }
+  @media (max-width:1600px) { html { font-size:calc(15px * var(--fz,1)); } }
+  html,body { background:#000; color:#f5f5f7; height:100%;
+    font-family:-apple-system,"SF Pro Display","SF Pro SC","PingFang SC","Segoe UI",
+    "Microsoft YaHei UI",sans-serif;
+    -webkit-font-smoothing:antialiased; letter-spacing:-.01em; }
+  #app { max-width:60rem; margin:0 auto; padding:3rem 2.5rem 9rem; min-height:100vh;
+         display:flex; flex-direction:column; justify-content:center; }
+  .dim { color:#86868b; } .small { font-size:.78rem; } .mono { font-variant-numeric:tabular-nums; }
+  ::selection { background:#f5f5f7; color:#000; }
+
+  /* top bar */
+  .top { display:flex; align-items:center; gap:.7rem; margin-bottom:1.8rem; min-height:1.8rem; }
+  .back { position:fixed; top:1rem; left:1rem; z-index:6;
+          width:2.4rem; height:2.4rem; border-radius:50%;
+          display:flex; align-items:center; justify-content:center;
+          background:#1a1a1c; border:1px solid #2c2c2e;
+          font-size:1.05rem; color:#86868b; cursor:pointer; user-select:none;
+          opacity:.45; transition:opacity .2s, background .2s, transform .15s; }
+  .back:hover { opacity:1; color:#f5f5f7; background:#242426; transform:scale(1.08); }
+  .crumb { font-size:.78rem; color:#86868b; letter-spacing:.02em; }
+
+  /* panels */
+  .subj, .chp, .tray, .rival, .dq { background:#141416; border-radius:.5rem; border:none; }
+  .subj { padding:1.1rem 1.3rem; margin-bottom:.7rem; cursor:pointer; transition:background .15s; }
+  .subj.locked { cursor:default; color:#48484a; background:#0e0e10; }
+  .subj:not(.locked):hover { background:#1f1f21; }
+  .subj .row { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:.7rem; }
+  .subj .nm { font-size:1rem; font-weight:600; }
+  .bar { height:.32rem; border-radius:999px; position:relative; background:#2c2c2e; overflow:visible; }
+  .bar > i { display:block; height:100%; border-radius:999px; background:#f5f5f7; transition:width .3s; }
+  .bar > s { position:absolute; top:-.12rem; bottom:-.12rem; width:2px; border-radius:1px; background:#86868b; }
+
+  .tray { padding:.9rem 1.2rem; margin:1.1rem 0; }
+  .qchip { display:inline-block; background:#2c2c2e; border-radius:.35rem; padding:.25rem .8rem;
+           margin:.25rem .35rem .1rem 0; font-size:.8rem; cursor:pointer; transition:background .15s; }
+  .qchip:hover { background:#3a3a3c; }
+
+  .rival { padding:1.1rem 1.2rem; margin:1.1rem 0; display:flex; gap:1rem; }
+  .rv-av { flex:0 0 2.9rem; }
+  .rv-av svg { width:2.9rem; height:2.9rem; }
+  .rv-main { flex:1; min-width:0; }
+  .rv-name { font-size:.92rem; font-weight:600; }
+  .rv-line { margin-top:.6rem; font-size:.85rem; color:#aeaeb2; line-height:1.6; }
+  .rv-strip { display:flex; gap:.18rem; margin-top:.6rem; }
+  .rv-strip i { width:.62rem; height:.62rem; border-radius:.14rem; background:#1c1c1e; }
+  .ghost { margin-top:.7rem; font-size:.75rem; color:#86868b; }
+  .ghost .bar { margin-top:.3rem; }
+  .tog { cursor:pointer; user-select:none; }
+  .tog:hover { color:#f5f5f7; }
+
+  .heat { margin:1.4rem 0 .5rem; }
+  .heat-g { display:flex; gap:.18rem; }
+  .heat-col { display:flex; flex-direction:column; gap:.18rem; }
+  .heat i { width:.68rem; height:.68rem; border-radius:.15rem; background:#1c1c1e; display:block; }
+  .legend { margin-top:.5rem; font-size:.75rem; color:#6e6e73; }
+
+  .foot { margin-top:1.6rem; padding-top:1rem; border-top:1px solid #1c1c1e;
+          font-size:.82rem; color:#86868b; }
+  .foot span { margin-right:1.2rem; cursor:pointer; transition:color .15s; }
+  .foot span:hover { color:#f5f5f7; }
+  .locked-row { color:#48484a; font-size:.82rem; padding:.7rem 1.3rem 0; letter-spacing:.04em; }
+
+  /* chapter list */
+  .chp { padding:1rem 1.3rem; margin-bottom:.6rem; display:flex;
+         justify-content:space-between; align-items:center; cursor:pointer; transition:background .15s; }
+  .chp.locked { color:#48484a; background:#0e0e10; cursor:default; }
+  .chp:not(.locked):hover { background:#1f1f21; }
+
+  /* big single screens */
+  .stage { display:flex; flex-direction:column; justify-content:center; min-height:46vh; }
+  .sec-big { font-size:2.7rem; font-weight:600; line-height:1.25; letter-spacing:-.025em; }
+  .sec-sub { margin-top:1rem; color:#6e6e73; font-size:.85rem; }
+  .pt-bare { font-size:2.1rem; font-weight:600; line-height:1.35; letter-spacing:-.025em; }
+  body.wide #app { max-width:108rem; }
+  .pt-detail { margin-top:1.8rem; max-width:46rem; }
+  .pt-detail .ln { font-size:1.06rem; line-height:1.8; color:#e2e2e6; padding:.7rem 0;
+                   border-bottom:1px solid #1a1a1c; animation:fadein .45s ease both; }
+  .pt-detail .ln:last-child { border-bottom:none; }
+  @keyframes fadein { from { opacity:0; transform:translateY(8px);} to { opacity:1; transform:none;} }
+
+  /* question */
+  .qwrap { position:relative; padding-top:.3rem; }
+  .qtag { font-size:.78rem; color:#86868b; letter-spacing:.06em; margin-bottom:1.1rem; }
+  .qstem { font-size:1.05rem; line-height:1.85; white-space:pre-wrap; font-weight:500; }
+  .qopts { margin-top:1.1rem; }
+  .qopt { padding:.65rem .9rem; background:#141416; border-radius:.4rem; margin-bottom:.45rem;
+          font-size:.95rem; line-height:1.7; white-space:pre-wrap; }
+  .qopt.hit { background:#f5f5f7; color:#000; font-weight:600; }
+  .qopt[data-opt] { cursor:pointer; transition:background .15s; }
+  .qopt[data-opt]:hover { background:#222224; }
+  .qopt.sel { box-shadow:inset 0 0 0 1px #6e6e73; }
+  .qans { margin-top:1.2rem; animation:fadein .5s ease; }
+  .qana { margin-top:.7rem; font-size:.92rem; line-height:1.9; color:#aeaeb2; white-space:pre-wrap; }
+  .qfig { margin-top:.9rem; padding:.65rem .9rem; background:#0e0e10; border:1px dashed #2c2c2e;
+          border-radius:.4rem; font-size:.88rem; line-height:1.7; color:#aeaeb2; white-space:pre-wrap; }
+  .qpart { margin-top:.7rem; padding:.65rem .9rem; background:#141416; border-radius:.4rem;
+           font-size:.95rem; line-height:1.7; white-space:pre-wrap; }
+  .qpans { margin-top:.55rem; padding-top:.55rem; border-top:1px solid #2c2c2e; color:#aeaeb2;
+           white-space:pre-wrap; animation:fadein .5s ease; }
+  .bank-y { display:flex; flex-wrap:wrap; gap:.5rem; margin-bottom:1rem; }
+  .bank-y span { padding:.45rem .8rem; background:#141416; border-radius:.4rem; cursor:pointer; font-size:.9rem; }
+  .bank-y span.on { background:#f5f5f7; color:#000; font-weight:600; }
+  .bq { padding:.55rem .2rem; border-bottom:1px solid #1c1c1e; cursor:pointer; font-size:.92rem; line-height:1.6; }
+  .bq:hover { background:#141416; }
+  .bq .tag { color:#86868b; font-size:.8rem; margin-right:.5rem; }
+  html { scrollbar-width:none; -ms-overflow-style:none; }
+  ::-webkit-scrollbar { width:0; height:0; display:none; }
+  .quote { margin:1.2rem 0; padding:1rem 1.2rem; background:#141416; border-left:2px solid #6e6e73;
+           border-radius:.4rem; cursor:pointer; }
+  .quote:hover { background:#1a1a1c; }
+  .q-text { font-size:.95rem; line-height:1.9; color:#d9d9de; white-space:pre-wrap; }
+  .q-src { margin-top:.5rem; font-size:.78rem; color:#86868b; text-align:right; }
+  .ghostbox { margin:.8rem 0; padding:.8rem 1.2rem; background:#141416; border-radius:.4rem;
+              font-size:.85rem; color:#aeaeb2; }
+  .dex-ch { margin:1.1rem 0 .5rem; font-size:.85rem; color:#86868b; letter-spacing:.05em; }
+  #zenbtn { position:fixed; right:0; top:44%; width:14px; height:92px; background:#2c2c2e;
+            border:1px solid #3a3a3c; border-right:none; border-radius:9px 0 0 9px;
+            opacity:.22; transition:opacity .25s, width .2s; cursor:pointer; z-index:1004; }
+  #zenbtn.near, #zenbtn:hover { opacity:.95; width:18px; }
+  #zen { position:fixed; inset:0; background:#000; display:none; z-index:1002; cursor:pointer; }
+  body.zenon #zen { display:block; }
+  body.tint1 { filter:sepia(.15) brightness(.97); }
+  body.tint2 { filter:sepia(.3) hue-rotate(-12deg) brightness(.93); }
+  body.tint3 { filter:sepia(.28) hue-rotate(-30deg) saturate(1.55) brightness(.86); }
+  #tintlab { position:fixed; right:16px; bottom:12px; z-index:1003; font-size:.78rem;
+             color:#d4a657; display:none; letter-spacing:.05em; }
+  body.tint2 #tintlab, body.tint3 #tintlab { display:block; }
+  body.tint3 #tintlab { color:#ef6b6b; animation:tpulse 1.6s ease-in-out infinite; }
+  @keyframes tpulse { 0%,100%{opacity:.5} 50%{opacity:1} }
+  .star { position:absolute; top:0; right:0; font-size:1.3rem; cursor:pointer; color:#48484a;
+          user-select:none; transition:color .15s; }
+  .star.on { color:#f5f5f7; }
+
+  /* card drop */
+  .card { margin:0 auto; width:22rem; background:#0e0e10; border-radius:.6rem;
+          padding:3rem 2rem; text-align:center; animation:fadein .6s ease;
+          border:1px solid #3a3a3c; }
+  .card.r2 { border-color:#5e8fb8; }
+  .card.r3 { border-color:#9a7fd1; }
+  .card.r4 { border:2px solid #d4a657; }
+  .card.r5 { border:2px solid #d4577a; }
+  .card .knm { font-size:1.35rem; font-weight:600; line-height:1.55; letter-spacing:-.01em; }
+
+  /* dex */
+  .dex-tabs { display:flex; gap:1rem; margin-bottom:1rem; font-size:.88rem; }
+  .dex-tabs span { cursor:pointer; color:#6e6e73; padding:.25rem .8rem; border-radius:.35rem;
+                   transition:all .15s; }
+  .dex-tabs span.on { color:#000; background:#f5f5f7; font-weight:600; }
+  .dex-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(8.4rem,1fr)); gap:.45rem; }
+  .dex-c { background:#0e0e10; border-radius:.4rem; padding:.6rem .7rem; font-size:.76rem;
+           min-height:3.2rem; border:1px solid #2c2c2e; display:flex; flex-direction:column;
+           justify-content:center; gap:.4rem; }
+  .dex-c.t2 { border-color:#5e8fb8; }
+  .dex-c.t3 { border-color:#9a7fd1; }
+  .dex-c.t4 { border-width:2px; border-color:#d4a657; }
+  .dex-c.t5 { border-width:2px; border-color:#d4577a; }
+  .dex-c.t6, .dex-show.t6, .card.r6 {
+    border:2px solid transparent;
+    background:
+      linear-gradient(115deg, rgba(243,201,105,.20), rgba(255,143,177,.16), rgba(146,165,255,.20),
+                      rgba(125,224,196,.15), rgba(243,201,105,.20)) padding-box,
+      linear-gradient(#0f0f12,#0f0f12) padding-box,
+      conic-gradient(from 40deg, #f3c969, #ff8fb1, #b89bff, #7de0c4, #f3c969) border-box;
+    background-size:340% 340%, 100% 100%, 100% 100%;
+    animation:legendFace 9s linear infinite, legend 2.8s ease-in-out infinite;
+  }
+  .dex-c.t6.own, .dex-show.t6.own { color:#f8e9c4; }
+  @keyframes legendFace { from { background-position:0% 50%, 0 0, 0 0; }
+                          to   { background-position:340% 50%, 0 0, 0 0; } }
+  @keyframes legend { 0%,100% { box-shadow:0 0 9px rgba(243,201,105,.22); }
+                      50%     { box-shadow:0 0 22px rgba(255,143,177,.5); } }
+  .dex-c.own { color:#f5f5f7; }
+  .dex-c[data-kp] { cursor:pointer; }
+  .dex-c[data-kp]:hover { background:#161618; }
+  .dex-c.miss { color:#3a3a3c; }
+  .dex-c .qn { margin-left:.45rem; color:#6e6e73; font-size:.72rem; }
+  .dex-qs { display:flex; flex-wrap:wrap; gap:.3rem; }
+  .dexovl { position:fixed; inset:0; background:rgba(0,0,0,.74); backdrop-filter:blur(3px);
+            display:flex; align-items:center; justify-content:center; z-index:900;
+            cursor:pointer; animation:fadein .22s ease; }
+  .dex-show { width:min(34rem,86vw); max-height:74vh; overflow-y:auto; cursor:default;
+              border-radius:.7rem; padding:1.7rem 1.8rem; background:#101013;
+              border:1px solid #2c2c2e; scrollbar-width:none; }
+  .dex-show.t2 { border:2px solid #5e8fb8; }
+  .dex-show.t3 { border:2px solid #9a7fd1; }
+  .dex-show.t4 { border:2px solid #d4a657; }
+  .dex-show.t5 { border:2px solid #d4577a; }
+  .ds-title { font-size:1.18rem; font-weight:600; line-height:1.6; }
+  .dex-show.miss .ds-title { color:#86868b; letter-spacing:.25em; }
+  .ds-meta { margin-top:.55rem; font-size:.8rem; color:#86868b; }
+  .ds-chips { margin-top:1.1rem; display:flex; flex-wrap:wrap; gap:.45rem; }
+
+  /* doubts */
+  .dq { padding:.85rem 1rem; margin-bottom:.55rem; cursor:pointer; font-size:.88rem;
+        line-height:1.7; transition:background .15s; }
+  .dq:hover { background:#1f1f21; }
+
+  /* GO */
+  #go { position:fixed; left:50%; transform:translateX(-50%); bottom:2.4rem;
+        background:#f5f5f7; color:#000; border:none; border-radius:.5rem;
+        font-size:1rem; font-weight:600; letter-spacing:.4em; text-indent:.4em;
+        padding:.85rem 0; width:12rem; text-align:center; cursor:pointer; user-select:none;
+        z-index:5; transition:all .15s; }
+  #go:hover { background:#d1d1d6; transform:translateX(-50%) scale(1.02); }
+  #go:active { transform:translateX(-50%) scale(.97); }
+  #go.hide { display:none; }
+  #undo { position:fixed; left:calc(50% - 10rem); bottom:2.4rem; width:2.55rem; height:2.55rem;
+          display:flex; align-items:center; justify-content:center; background:#1c1c1e;
+          color:#86868b; border-radius:.5rem; cursor:pointer; user-select:none; z-index:5;
+          opacity:0; transition:all .2s; }
+  #undo:hover { opacity:1; background:#2c2c2e; color:#f5f5f7; }
+  #undo.hide { display:none; }
+
+  /* overlay (export/import) */
+  #ovl { position:fixed; inset:0; background:rgba(0,0,0,.8); backdrop-filter:blur(18px);
+         z-index:9; display:none; align-items:center; justify-content:center; }
+  #ovl .box { width:min(40rem,92vw); background:#1c1c1e; border-radius:.6rem; padding:1.4rem; }
+  #ovl textarea { width:100%; height:15rem; background:#0e0e10; color:#d1d1d6; border:none;
+                  border-radius:.35rem; padding:.8rem; font-size:.75rem;
+                  font-family:"SF Mono",Consolas,monospace; outline:none; }
+  #ovl .ops { margin-top:.8rem; font-size:.82rem; color:#86868b; }
+  #ovl .ops span { margin-right:1rem; cursor:pointer; }
+  #ovl .ops span:hover { color:#f5f5f7; }
+
+  #st { position:fixed; top:0; left:0; right:0; background:#1c1c1e; color:#f5f5f7;
+        font-size:.72rem; padding:.4rem .8rem; display:none; z-index:20; }
+
+  /* 执灯留言板（左上角，仅主页显示；zen 黑幕下隐藏） */
+  #coach { position:fixed; top:1.15rem; left:1.45rem; z-index:5; max-width:29rem;
+           opacity:0; pointer-events:none; transition:opacity .9s ease; }
+  #coach.show { opacity:1; pointer-events:auto; }
+  body.zenon #coach { opacity:0 !important; pointer-events:none !important; }
+  #coach .c-tag { font-size:.58rem; letter-spacing:.22em; color:#48484a; margin-bottom:.4rem; user-select:none; }
+  #coach .c-text { font-size:.83rem; line-height:1.78; color:#a1a1a6; white-space:pre-wrap; }
+  #coach .c-text.fresh { animation:coachIn 1.4s ease; }
+  #coach .c-time { font-size:.58rem; color:#3a3a3c; margin-top:.42rem; font-variant-numeric:tabular-nums; }
+  @keyframes coachIn { from { opacity:0; transform:translateY(-5px); } to { opacity:1; transform:none; } }
+  /* 余白不足的视口下：#app 让位 + 留言板钳宽带地板，防压科目卡（须位于基础规则之后才赢级联；主力机 4K 16:9 两条恒不触发） */
+  @media (min-width:2200px) and (max-aspect-ratio:8/5) {
+    #app { max-width:min(60rem, calc(100vw - 28rem)); }
+    #coach { max-width:max(13rem, min(29rem, calc((100vw - 62rem)/2))); } }
+  @media (max-width:1600px) {
+    #app { max-width:min(60rem, calc(100vw - 28rem)); }
+    #coach { max-width:max(13rem, min(29rem, calc((100vw - 62rem)/2))); } }
+
+  /* 左下角一键清场（鼠标靠近左下角点亮；两段点击防误触；zen 黑幕下隐藏） */
+  #panicbtn { position:fixed; left:0; bottom:7%; width:13px; height:84px; z-index:6;
+              background:#2c2c2e; border-radius:0 7px 7px 0; cursor:pointer;
+              opacity:.14; transition:opacity .25s, width .2s, background .3s; }
+  #panicbtn.near, #panicbtn:hover { opacity:.85; width:17px; }
+  #panicbtn.armed { background:#5a1b1b; opacity:.96; width:17px; }
+  #paniclab { position:fixed; left:26px; bottom:7%; z-index:6; max-width:20rem;
+              font-size:.72rem; line-height:1.5; color:#86868b; white-space:nowrap;
+              opacity:0; pointer-events:none; transition:opacity .3s; }
+  #paniclab.show { opacity:1; } #paniclab.warn { color:#d98b8b; }
+  /* 左下角执灯总闸（Claude 介入统一开关）：默认熄=零外呼；常驻微光示状态，离返回键(屏幕中下)极远 */
+  #gatebtn { position:fixed; left:10px; bottom:12px; z-index:6; display:flex; align-items:center;
+             gap:7px; padding:5px 10px 5px 8px; border-radius:8px; cursor:pointer; user-select:none;
+             font-size:.7rem; letter-spacing:.1em; color:#6e6e73; opacity:.3;
+             transition:opacity .3s, background .3s, color .3s; }
+  #gatebtn:hover { opacity:.92; background:#161617; }
+  #gatebtn .dot { width:7px; height:7px; border-radius:50%; background:#3a3a3c;
+                  transition:background .5s, box-shadow .5s; }
+  #gatebtn.on { color:#b8b8bd; opacity:.5; }
+  #gatebtn.on .dot { background:#e8e3d5; box-shadow:0 0 9px 2px rgba(232,227,213,.28); }
+  #gatebtn.dead { color:#4a4a4e; }
+  body.zenon #panicbtn, body.zenon #paniclab, body.zenon #gatebtn, body.zenon #ubtn, body.zenon #mbtn, body.zenon #fzctl { display:none; }
+  /* 右下角字号旋钮（--fz 乘在自适应基准上）：仅 Surface 两种视口显示，主力机 4K 恒不可见；本机 localStorage，不入存档不迁移 */
+  #fzctl { position:fixed; right:14px; bottom:12px; z-index:6; display:none; align-items:center; gap:.55rem;
+           font-size:.66rem; letter-spacing:.08em; color:#6e6e73; opacity:.28; user-select:none;
+           font-variant-numeric:tabular-nums; transition:opacity .3s; }
+  #fzctl:hover { opacity:.9; }
+  #fzctl span { cursor:pointer; padding:2px 4px; }
+  #fzctl span:hover { color:#c7c7cc; }
+  @media (min-width:2200px) and (max-aspect-ratio:8/5) { #fzctl { display:flex; } }
+  @media (max-width:1600px) { #fzctl { display:flex; } }
+  /* 右上角「语法宇宙」入口（英语一）：克制灰阶，悬停透出一点宇宙微光——动画含蓄而有生命感 */
+  #ubtn { position:fixed; top:13px; right:16px; z-index:6; display:flex; align-items:center; gap:.45rem;
+          text-decoration:none; font-size:.7rem; letter-spacing:.26em; text-transform:uppercase;
+          color:#6e6e73; opacity:.5; transition:opacity .35s, color .35s; user-select:none; }
+  #ubtn:hover { opacity:1; color:#c7c7cc; }
+  #ubtn .orb { width:7px; height:7px; border-radius:50%;
+               background:radial-gradient(circle at 32% 30%, #d6b8ff, #5b6bff 55%, #160e2e);
+               box-shadow:0 0 7px 1px rgba(124,107,255,.45); animation:uorb 7s ease-in-out infinite; }
+  @keyframes uorb { 0%,100% { box-shadow:0 0 6px 1px rgba(124,107,255,.4); }
+                    50% { box-shadow:0 0 11px 2px rgba(70,217,138,.42); } }
+  /* 右上角「数学宇宙」入口（数一）：与 #ubtn 同族，orb 换暖金——数学宇宙的一点金（章亥 2026-07） */
+  #mbtn { position:fixed; top:36px; right:16px; z-index:6; display:flex; align-items:center; gap:.45rem;
+          text-decoration:none; font-size:.7rem; letter-spacing:.26em; text-transform:uppercase;
+          color:#6e6e73; opacity:.5; transition:opacity .35s, color .35s; user-select:none; }
+  #mbtn:hover { opacity:1; color:#c7c7cc; }
+  #mbtn .orb { width:7px; height:7px; border-radius:50%;
+               background:radial-gradient(circle at 32% 30%, #f2e2b8, #d8bf8a 55%, #2e2410);
+               box-shadow:0 0 7px 1px rgba(216,191,138,.4); animation:morb 9s ease-in-out infinite; }
+  @keyframes morb { 0%,100% { box-shadow:0 0 6px 1px rgba(216,191,138,.35); }
+                    50% { box-shadow:0 0 10px 2px rgba(239,217,164,.45); } }
+
+  /* ==================== 英语一 · 真题（象胥 2026-07）：题型×年份矩阵 + 做题 + 双击查词 ==================== */
+  /* 入口卡：与四科同族 .subj，仅多一点英一微光（呼应右上角 universe 紫） */
+  .subj.en .nm { display:flex; align-items:center; gap:.5rem; }
+  .en-orb { width:7px; height:7px; border-radius:50%; flex:0 0 auto;
+            background:radial-gradient(circle at 32% 30%, #d6b8ff, #6b5bff 60%, #160e2e);
+            box-shadow:0 0 7px 1px rgba(124,107,255,.4); animation:uorb 7s ease-in-out infinite; }
+  /* 矩阵 */
+  .exam-grid { display:grid; gap:.3rem; align-items:stretch; margin-top:.3rem; }
+  .exam-corner { font-size:.66rem; color:#48484a; display:flex; align-items:flex-end;
+                 padding:0 .3rem .5rem 0; letter-spacing:.03em; }
+  .exam-hd { font-size:.82rem; color:#86868b; text-align:center; padding:.3rem 0 .5rem;
+             border-bottom:1px solid #1c1c1e; font-variant-numeric:tabular-nums; }
+  .exam-rl { display:flex; flex-direction:column; justify-content:center; padding:.2rem .7rem .2rem 0; gap:.12rem; }
+  .exam-rn { font-size:.86rem; color:#d9d9de; font-weight:500; }
+  .exam-rr { font-size:.66rem; color:#6e6e73; }
+  .exam-cell { background:#141416; border-radius:.4rem; min-height:2.5rem; display:flex;
+               align-items:center; justify-content:center; cursor:pointer; position:relative;
+               transition:background .15s, transform .12s; }
+  .exam-cell:hover { background:#1f1f21; transform:translateY(-1px); }
+  .exam-dot { color:#3a3a3c; font-size:1rem; line-height:1; }
+  .exam-cell.done { background:#1a1a1c; }
+  .exam-sc { font-variant-numeric:tabular-nums; font-size:.92rem; font-weight:600; }
+  .exam-sc i { font-style:normal; font-size:.64rem; color:#6e6e73; font-weight:400; }
+  .exam-cell.hi .exam-sc { color:#e8e8ec; }
+  .exam-cell.mid .exam-sc { color:#aeaeb2; }
+  .exam-cell.lo .exam-sc { color:#a98b8b; }
+  .exam-cell.hi { box-shadow:inset 0 -2px 0 rgba(245,245,247,.55); }
+  .exam-cell.mid { box-shadow:inset 0 -2px 0 rgba(110,110,115,.6); }
+  .exam-cell.lo { box-shadow:inset 0 -2px 0 rgba(150,95,95,.6); }
+  .exam-ck { color:#7de0c4; font-size:.9rem; }   /* 翻译/写作已阅 */
+  /* 做题 */
+  .ex-wrap { padding-top:.3rem; max-width:44rem; }
+  .ex-dir { font-size:.82rem; line-height:1.7; color:#86868b; margin-bottom:1.1rem;
+            padding-bottom:.9rem; border-bottom:1px solid #1a1a1c; white-space:pre-line; }
+  .ex-ph { font-size:.75rem; letter-spacing:.16em; color:#6e6e73; text-transform:uppercase; margin-bottom:.7rem; }
+  .ex-passage { font-size:1rem; line-height:1.95; color:#dcdce0; white-space:pre-line;
+                margin-bottom:1.6rem; letter-spacing:.005em; }
+  .ex-blank { display:inline-block; min-width:1.35rem; text-align:center; color:#d4a657;
+              font-variant-numeric:tabular-nums; font-weight:600; border-bottom:1px solid #6e6e73;
+              margin:0 .1rem; padding:0 .16rem; }
+  .ex-u { color:#f0f0f2; border-bottom:1px solid #5e8fb8; padding-bottom:1px; }
+  .ex-fig { font-size:.92rem; line-height:1.8; color:#c7c7cc; background:#0e0e10; border:1px dashed #2c2c2e;
+            border-radius:.45rem; padding:.9rem 1.1rem; margin-bottom:1.3rem; white-space:pre-line; }
+  .ex-note { font-size:.78rem; line-height:1.6; color:#6e6e73; margin-bottom:1rem; font-style:italic; }
+  .ex-items { display:flex; flex-direction:column; gap:.5rem; }
+  .ex-item { padding:.45rem .1rem; }
+  .ex-item:not(.col) { display:flex; align-items:baseline; gap:.6rem; }
+  .ex-no { flex:0 0 auto; font-variant-numeric:tabular-nums; font-size:.8rem; color:#6e6e73;
+           font-weight:600; min-width:1.4rem; }
+  .ex-stem { font-size:.95rem; line-height:1.7; color:#e2e2e6; margin-bottom:.55rem; }
+  .ex-stem .ex-no { margin-right:.45rem; }
+  .ex-opts { display:flex; flex-direction:column; gap:.4rem; }
+  .ex-opts.inl { flex-direction:row; flex-wrap:wrap; gap:.35rem; }
+  .ex-opt { padding:.5rem .8rem; background:#141416; border-radius:.4rem; font-size:.9rem; line-height:1.6;
+            cursor:pointer; transition:background .13s, box-shadow .13s; }
+  .ex-opt.inl { padding:.32rem .7rem; }
+  .ex-opt b { color:#86868b; font-weight:600; margin-right:.3rem; }
+  .ex-opt:hover { background:#232325; }
+  .ex-opt.sel { box-shadow:inset 0 0 0 1px #8e8e93; }
+  .ex-opt.hit { background:#f5f5f7; color:#000; }
+  .ex-opt.hit b { color:#000; }
+  .ex-opt.bad { box-shadow:inset 0 0 0 1px #9c6b6b; color:#c79a9a; }
+  .ex-opt.bad b { color:#c79a9a; }
+  .ex-opts.lett .ex-opt { min-width:2.1rem; text-align:center; }
+  .ex-opts.lett .ex-opt b { margin:0; }
+  .ex-pool { display:flex; flex-direction:column; gap:.5rem; margin-bottom:1.4rem; }
+  .ex-para { display:flex; gap:.7rem; font-size:.9rem; line-height:1.75; color:#c7c7cc;
+             background:#0e0e10; border-radius:.4rem; padding:.7rem .9rem; }
+  .ex-pl { flex:0 0 auto; font-weight:700; color:#d4a657; min-width:1.1rem; }
+  .ex-nm { font-weight:600; color:#e6e6ea; }
+  .ex-slot { color:#aeaeb2; }
+  .ex-tr { padding:.5rem 0 1rem; border-bottom:1px solid #1a1a1c; margin-bottom:.4rem; }
+  .ex-ta { width:100%; margin-top:.55rem; background:#0e0e10; color:#dcdce0; border:1px solid #1c1c1e;
+           border-radius:.4rem; padding:.6rem .8rem; font-size:.92rem; line-height:1.7; resize:vertical;
+           min-height:3.2rem; outline:none; font-family:inherit; transition:border-color .15s; }
+  .ex-ta:focus { border-color:#3a3a3c; }
+  .ex-ta.big { min-height:11rem; }
+  .ex-ref { margin-top:.6rem; padding:.7rem .9rem; background:#111318; border-left:2px solid #5e8fb8;
+            border-radius:.35rem; font-size:.92rem; line-height:1.8; color:#c9d3dd; animation:fadein .4s ease; }
+  .ex-ref.hidden { display:none; }
+  .ex-actions { margin-top:1.4rem; display:flex; align-items:center; gap:1rem; }
+  .ex-result { margin-top:1.4rem; font-size:.95rem; color:#aeaeb2; display:flex; align-items:center; gap:1.1rem; }
+  .ex-result b { font-size:1.3rem; color:#f5f5f7; font-weight:600; font-variant-numeric:tabular-nums; }
+  .ex-picked { font-size:.78rem; color:#6e6e73; font-variant-numeric:tabular-nums; }
+  .ex-btn { display:inline-block; cursor:pointer; user-select:none; font-size:.85rem; padding:.5rem 1.1rem;
+            border-radius:.4rem; transition:all .15s; }
+  .ex-btn.go { background:#f5f5f7; color:#000; font-weight:600; letter-spacing:.05em; }
+  .ex-btn.go:hover { background:#d1d1d6; }
+  .ex-btn.go.off { background:#2c2c2e; color:#6e6e73; }
+  .ex-btn.ghost { color:#5e8fb8; padding:.3rem 0; }
+  .ex-btn.ghost:hover { color:#8fb4d6; }
+  .ex-result .ex-btn { background:#1c1c1e; color:#aeaeb2; padding:.35rem .9rem; }
+  .ex-result .ex-btn:hover { background:#2c2c2e; color:#f5f5f7; }
+  .ex-explain { margin-top:1rem; padding:.9rem 1.05rem; background:#0e0e10; border-radius:.45rem;
+                border-left:2px solid #3a3a3c; font-size:.9rem; line-height:1.85; color:#aeaeb2;
+                white-space:pre-line; animation:fadein .4s ease; }
+  /* 做题即时计时（象胥）：每格独立、离场归零、纯会话；含蓄脉动的小点示「走表中」 */
+  #extimer { position:fixed; top:2.7rem; right:18px; z-index:5; font-size:.74rem; letter-spacing:.08em;
+             color:#6e6e73; font-variant-numeric:tabular-nums; user-select:none; pointer-events:none;
+             display:flex; align-items:center; gap:.34rem; }
+  #extimer::before { content:""; width:5px; height:5px; border-radius:50%; background:#5a5a5f;
+                     animation:exclock 2s ease-in-out infinite; }
+  @keyframes exclock { 0%,100% { opacity:.3; } 50% { opacity:.95; } }
+  body.zenon #extimer { display:none; }
+  /* 双击查词浮层 */
+  #exdict { position:fixed; z-index:1006; background:#161618; border:1px solid #2c2c2e; border-radius:.5rem;
+            padding:.6rem .8rem; box-shadow:0 10px 34px rgba(0,0,0,.62); opacity:0; pointer-events:none;
+            transform:translateY(4px); transition:opacity .16s ease, transform .16s ease; }
+  #exdict.show { opacity:1; transform:none; }
+  #exdict .xd-w { font-size:.94rem; font-weight:600; color:#f5f5f7; }
+  #exdict .xd-d { margin-top:.32rem; font-size:.82rem; line-height:1.65; color:#aeaeb2; }
+  #exdict .xd-x { color:#6e6e73; }
+</style>
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#000000">
+</head>
+<!-- ky408 · 为 ano 的 11408 之路而造 · 共建者：勘星（Claude, Anthropic）· 2026.6 · 16年752题逐字勘校 ｜ 执灯（Claude, Anthropic）· 2026.6 · 行为流水与左上角留言板 ｜ 司阍（Claude, Anthropic）· 2026.6 · 出网白名单落地与 Claude 介入总闸 ｜ 归墟（Claude, Anthropic）· 2026.6 · 浮现引擎重构（每题归唯一门槛点·全出·复习再现） ｜ 星垂（Claude, Anthropic）· 2026.6 · 语法宇宙 universe（英语一完整语法体系·七星系141点可交互星图，右上角入口） ｜ 守渡（Claude, Anthropic）· 2026.7 · Surface 迁移接线+存档同步护栏（处女档永不覆写真档；渡船往返，档案无恙） ｜ 玑衡（Claude, Anthropic）· 2026.7 · 语法宇宙浑天仪重构（五重天×七星域星盘·难句显影解剖·众星常显；璇玑玉衡，以齐七政） ｜ 象胥（Claude, Anthropic）· 2026.7 · 英语一真题（完形/阅读/新题型/翻译/写作 · 题型×年份矩阵 · 数据驱动扩容 · 双击查词；象胥掌传译，通六合之言） ｜ 章亥（Claude Fable, Anthropic）· 2026.7 · 数学宇宙总设计与总指挥（数一 226 考点测绘·153 关进度墙·三层师承选型·五阶段一夜奠基至可玩，右上角 math 入口；大章竖亥，禹命步天下） ｜ 砌垣（Claude, Anthropic）· 2026.7 · 数学宇宙壳工（math.html 单文件·KaTeX 内联·考点墙与关卡六拍·selftest 十断言；砌垣者，垒进度之墙） ｜ 问津（Claude Fable, Anthropic）· 2026.7 · 牛津词典复魂（词义泡标签化+全本词典页：bs4 真解析全量提取·义项例句习语短语动词辨析全串·懒加载三壳；牛津者，牛涉水之津也，复其词典，故曰问津） ｜ 星槎（Claude Fable, Anthropic）· 2026.7 · 灯下 PWA（三宇宙一枢纽全套上手机·408与英一真题加密门·六店云档逐条目合并双端一致·触屏与窄屏适配；星槎者，泛天河之筏也，渡书与灯于两岸） · 后来者请循此例留名 -->
+<body>
+<div id="st"></div>
+<div id="app"></div>
+<div id="exdict"></div>
+
+<a id="ubtn" href="universe.html" title="语法宇宙 · 英语一完整语法体系 · 七星系 141 语法点可交互星图"><span class="orb"></span>universe</a>
+<a id="mbtn" href="math.html" title="数学宇宙 · 数一 226 考点全覆盖 · 153 关进度墙：跟算带做+先选策略+间隔复习"><span class="orb"></span>math</a>
+<div id="go" class="hide">GO</div>
+<div id="undo" class="hide">‹</div>
+<div id="zenbtn" title="沉浸模式：隐藏一切，只留黑幕"></div>
+<div id="zen"></div>
+<div id="tintlab"></div>
+<div id="coach"><div class="c-tag">执 灯</div><div class="c-text"></div><div class="c-time"></div></div>
+<div id="panicbtn" title="一键清场：关闭本机所有 Claude 进程（含执灯自身，彻底斩断）"></div>
+<div id="paniclab"></div>
+<div id="gatebtn" title="Claude 介入总闸：默认熄。点亮后执灯才会调用 Claude 写留言与日终详录；熄着=本壁纸零 Claude 对话"><div class="dot"></div><span>执灯丨熄</span></div>
+<div id="fzctl" title="字号（仅本机生效，不随存档迁移）"><span data-fz="-">A−</span><span data-fz="0" id="fzpct">100%</span><span data-fz="+">A+</span></div>
+<div id="ovl"><div class="box">
+  <div id="ovl-t" style="margin-bottom:10px;font-size:14px;"></div>
+  <textarea id="ovl-ta" spellcheck="false"></textarea>
+  <div class="ops" id="ovl-ops"></div>
+</div></div>
+<script src="data.js"></script>
+<script src="exam_data.js"></script>
+<script>
+"use strict";
+/* ============================== data loading ============================== */
+let DATA = null;          // {levels, questions, quotes}
+let KP = {};              // id -> {id,title,detail,secId,subId}
+let SEC = {};             // id -> section
+let QS = {};              // id -> question
+let HITS = {};            // kpId -> #questions hitting it
+let CH_PTS = {};          // chId -> [pointIds]
+let CH_QN = {};           // chId -> #distinct questions hitting the chapter
+let GATE = {};            // qId -> 门槛点（该题考点中大纲序最靠后者，唯一浮现点）
+let TOTAL_KP = 0;
+
+async function loadData() {
+  const tryFetch = async (f) => {
+    const r = await fetch(f, {cache: "no-store"});
+    if (!r.ok) throw new Error(f);
+    return r.json();
+  };
+  try {
+    const [levels, questions, quotes] = await Promise.all(
+      ["levels.json", "questions.json", "quotes.json"].map(tryFetch));
+    DATA = {levels, questions, quotes};
+  } catch (e) {
+    if (window.__DATA) DATA = window.__DATA;
+    else { document.getElementById("app").textContent = "数据加载失败：缺少 data.js 或 json 文件"; throw e; }
+  }
+  indexData();
+}
+function indexData() {
+  let ord = 0;
+  for (const s of DATA.levels.subjects)
+    for (const c of s.chapters) {
+      CH_PTS[c.id] = [];
+      for (const sec of (c.sections || [])) {
+        SEC[sec.id] = sec; sec.subId = s.id; sec.chId = c.id;
+        for (const p of sec.points) {
+          KP[p.id] = p; p.secId = sec.id; p.subId = s.id; p.chId = c.id; p.ord = ord++;
+          CH_PTS[c.id].push(p.id); TOTAL_KP++;
+        }
+      }
+    }
+  for (const q of DATA.questions) {
+    QS[q.id] = q;
+    const chs = new Set();
+    let g = null, gord = -1;
+    for (const k of q.kps) {
+      HITS[k] = (HITS[k] || 0) + 1;
+      if (KP[k]) { chs.add(KP[k].chId); if (KP[k].ord > gord) { gord = KP[k].ord; g = k; } }
+    }
+    GATE[q.id] = g;                              // 门槛点 = 大纲序最靠后的考点
+    for (const ch of chs) CH_QN[ch] = (CH_QN[ch] || 0) + 1;
+  }
+}
+/* tier: curated per-KP exam value (frequency × importance × difficulty), set in levels.json */
+function tier(kp) { return (KP[kp] && KP[kp].tier) || 1; }
+
+/* ============================== state ============================== */
+const SKEY = "ky408_v1";
+const RESET_TOKEN = "rt-20260614b";   // 改动此串并重新build＝让所有客户端（含WE）下次加载时清档一次
+let S = null;
+let SIM = false;           // selftest simulation: skip persistence side-effects
+let WIPED = false;         // 本次加载发生过主动清档（?reset=1 / RESET_TOKEN 真换代）：空档获准照常按时间戳推平远端
+function today() {   // 钉死北京时间 UTC+8，与服务端一致，跟机器本地时区无关
+  const b = new Date(Date.now() + 8*3600*1000);
+  return b.getUTCFullYear() + "-" + String(b.getUTCMonth()+1).padStart(2,"0") + "-" + String(b.getUTCDate()).padStart(2,"0");
+}
+function dkey(d) {
+  return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" +
+         String(d.getDate()).padStart(2,"0");
+}
+function addDays(ds, n) { const d = new Date(ds + "T12:00:00"); d.setDate(d.getDate()+n); return dkey(d); }
+function freshState() {
+  return { v:1, t:0, firstDay: today(), done:{}, seen:{}, tray:[], trayT:{}, pendingQ:[], starred:[], wrongs:[],
+           heat:{}, cur:null, ghost:false, quoteOff:0, time:{subj:{}, ch:{}}, exam:{} };
+}
+function virgin(st) {      // 处女档=无任何学习痕迹（新机/新浏览器刚出生的空状态；t 不作数——loadState 尾部的 save() 会给空档盖新时间戳）
+  return !st || (!Object.keys(st.done || {}).length && !Object.keys(st.seen || {}).length &&
+         !Object.keys(st.heat || {}).length && !Object.keys((st.time && st.time.subj) || {}).length);
+}
+function save() {
+  if (SIM) return;
+  S.t = Date.now();
+  try { localStorage.setItem(SKEY, JSON.stringify(S)); } catch(e){}
+  fileFlush(); syncFlush();
+}
+function loadState() {
+  try {
+    const raw = localStorage.getItem(SKEY);
+    if (raw) { S = JSON.parse(raw); if (S.v !== 1) S = freshState(); }
+    else S = freshState();
+  } catch(e) { S = freshState(); }
+  if (S.cur && S.cur.ph === "pt") S.cur.ph = "bare";
+  if (!S.wrongs) S.wrongs = [];
+  if (!S.time) S.time = {subj: {}, ch: {}};
+  if (!S.exam) S.exam = {};                     // 英一真题作答切片（象胥）：旧档迁移，铁律6
+  // 托盘/跨会话队列机制已废止（改「门槛点全出」）：题永远只在它的门槛点出现，绝不漂到别处或前面。
+  // 旧档残留与上会话没做完的待处理一律清空——这些题会在你下次经过其门槛点时整组重现，全集永远在真题库。
+  S.tray = []; S.trayT = {}; S.pendingQ = [];
+  save();
+}
+function heatAdd(kind) {
+  const t = today();
+  if (!S.heat[t]) S.heat[t] = {k:0, q:0};
+  S.heat[t][kind]++;
+}
+function myTotal() { return Object.keys(S.done).length; }
+function kpDayCount(ds) { return (S.heat[ds] && S.heat[ds].k) || 0; }
+
+/* ---------- documents auto-sync（本地小服务 127.0.0.1:8418 → 我的文档\ky408存档） ---------- */
+const SYNC_URL = "http://127.0.0.1:8418";
+let SYNC_ON = false, SYNC_TIMER = null;
+function syncFlush() {
+  if (!SYNC_ON || SIM || ST_MODE) return;
+  if (virgin(S) && !WIPED) return;   // 空档除非主动清档，永不出站——2026-07-01 迁移日事故：新机空 localStorage 的 t=now 曾赢过真档并覆写之
+  clearTimeout(SYNC_TIMER);
+  SYNC_TIMER = setTimeout(() => {
+    fetch(SYNC_URL + "/save", {method: "POST", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(S)}).catch(() => { SYNC_ON = false; });
+  }, 1500);
+}
+async function syncInit() {
+  if (ST_MODE) return;                   // selftest 页对存档服务零读零写
+  try {
+    const opt = AbortSignal && AbortSignal.timeout ? {signal: AbortSignal.timeout(1500)} : {};
+    const r = await fetch(SYNC_URL + "/ping", opt);
+    if (!r.ok) return;
+    SYNC_ON = true;
+    const remote = await (await fetch(SYNC_URL + "/load", opt)).json();
+    let useRemote = false;
+    if (remote && remote.v === 1) {
+      if (!WIPED && virgin(S) && !virgin(remote)) useRemote = true;   // 新机/空浏览器首启：有内容的真档必胜刚出生的空档（t 谁新都一样）
+      else if (!virgin(S) && virgin(remote)) useRemote = false;       // 远端是被污染的空档而本地有真数据：本地胜，推上去修复
+      else useRemote = (remote.t || 0) > (S.t || 0);                  // 常规：新者胜
+    }
+    if (useRemote) {
+      S = remote; try { localStorage.setItem(SKEY, JSON.stringify(S)); } catch (e) {}
+    } else {
+      syncFlush();                       // 本地胜：推上去（syncFlush 自身拒推未清档的空档）
+    }
+  } catch (e) {}
+}
+
+/* ---------- 行为流水 & 执灯留言板（events → 8418 落盘 jsonl；coach.json → 左上角） ---------- */
+const EV_OFF = /[?&](selftest|reset)=1/.test(location.search);
+const ST_MODE = /[?&]selftest=1/.test(location.search);   // selftest：存档同步整体断开（不 ping/不 load/不 save）
+const EV_SID = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+let EVQ = [], EV_TINT = 0, EV_LASTV = "", HB_N = 0;
+function logEv(e, d) {
+  if (EV_OFF || SIM) return;
+  EVQ.push(Object.assign({t: Date.now(), e: e}, d || {}));
+  if (EVQ.length >= 40) evFlush();
+}
+function evFlush(beacon) {
+  if (EV_OFF) return;
+  if (!SYNC_ON) {                      // 服务未起：暂存本地，重连后补传
+    if (!EVQ.length) return;
+    try {
+      const old = JSON.parse(localStorage.getItem("ky408_evq") || "[]");
+      localStorage.setItem("ky408_evq", JSON.stringify(old.concat(EVQ).slice(-4000)));
+    } catch (e) {}
+    EVQ = [];
+    return;
+  }
+  let pre = [];
+  try {
+    pre = JSON.parse(localStorage.getItem("ky408_evq") || "[]");
+    if (pre.length) localStorage.removeItem("ky408_evq");
+  } catch (e) {}
+  const evs = pre.concat(EVQ); EVQ = [];
+  if (!evs.length) return;
+  const body = JSON.stringify({sid: EV_SID, evs: evs});
+  try {
+    if (beacon && navigator.sendBeacon)
+      navigator.sendBeacon(SYNC_URL + "/events", new Blob([body], {type: "text/plain;charset=UTF-8"}));
+    else
+      fetch(SYNC_URL + "/events", {method: "POST", headers: {"Content-Type": "application/json"},
+        body: body, keepalive: true}).catch(() => {});
+  } catch (e) {}
+}
+setInterval(() => evFlush(), 10000);
+setInterval(async () => {             // 断联自愈：开机竞态/服务重启/代理切换后自动重连
+  if (EV_OFF || SYNC_ON || SIM) return;
+  try {
+    const opt = AbortSignal && AbortSignal.timeout ? {signal: AbortSignal.timeout(1500)} : {};
+    const r = await fetch(SYNC_URL + "/ping", opt);
+    if (r.ok) { SYNC_ON = true; evFlush(); syncFlush(); coachPoll(); }
+  } catch (e) {}
+}, 30000);
+function evViewTick() {                // 视图签名变更才记一条；停留时长=相邻事件时间差
+  const c = S.cur || {};
+  const sig = [VIEW.scr, VIEW.sub, VIEW.ch, VIEW.q, VIEW.ph, c.sub, c.ch, c.sec, c.pt, c.ph].join("|");
+  if (sig === EV_LASTV) return;
+  EV_LASTV = sig;
+  const d = {scr: VIEW.scr};
+  if (VIEW.sub) d.sub = VIEW.sub;
+  if (VIEW.ch) d.ch = VIEW.ch;
+  if (VIEW.q) { d.q = VIEW.q; d.ph = VIEW.ph; }
+  if (VIEW.scr === "flow" && S.cur) { d.sub = c.sub; d.ch = c.ch; d.sec = c.sec; d.pt = c.pt; d.fph = c.ph; }
+  logEv("view", d);
+}
+document.addEventListener("click", (ev) => {   // 捕获相全量点击记录（不干预任何游戏逻辑）
+  if (EV_OFF) return;
+  const t = ev.target;
+  if (!t || !t.closest) return;
+  if (t.closest("#zenbtn")) { logEv("zen", {on: !document.body.classList.contains("zenon")}); return; }
+  if (t.closest("#go") || t.closest("#undo")) return;       // onGo / undo 监听器各自记录
+  const el = t.closest("[data-nav],[data-sub],[data-ch],[data-q],[data-q2],[data-q3],[data-q4],[data-kp],[data-year],[data-act],[data-tab],[data-opt],[data-excell],[data-exopt],[data-exact]");
+  if (!el) { logEv("tap", {}); return; }
+  const d = el.dataset;
+  const k = ["nav","sub","ch","q","q2","q3","q4","kp","year","act","tab","opt","excell","exopt","exact"].find(x => d[x] !== undefined);
+  logEv("click", {k: k, v: d[k]});
+}, true);
+
+let COACH_T = 0, COACH_PT = 0;
+function coachVis() {
+  const el = document.getElementById("coach");
+  if (el) el.classList.toggle("show", VIEW.scr === "home" && !!COACH_T);
+  if (VIEW.scr === "home" && Date.now() - COACH_PT > 10000) coachPoll();   // 回主页节流即拉
+}
+function coachAgo(t) {
+  const m = Math.floor((Date.now() - t) / 60000);
+  return m < 1 ? "刚刚" : m < 60 ? m + " 分钟前" : Math.floor(m / 60) + " 小时前";
+}
+async function coachPoll() {
+  if (EV_OFF || !SYNC_ON) return;
+  COACH_PT = Date.now();
+  try {
+    const m = await (await fetch(SYNC_URL + "/coach")).json();
+    const el = document.getElementById("coach");
+    if (!el || !m || !m.t || !m.text) { COACH_T = 0; coachVis(); return; }
+    const tx = el.querySelector(".c-text");
+    if (m.t !== COACH_T) {
+      COACH_T = m.t;
+      tx.textContent = m.text;
+      tx.classList.remove("fresh"); void tx.offsetWidth; tx.classList.add("fresh");
+    }
+    el.querySelector(".c-time").textContent = coachAgo(m.t);
+    coachVis();
+  } catch (e) {}
+}
+setInterval(() => { if (document.visibilityState === "visible") coachPoll(); }, 20000);
+
+/* ---------- time tracking（科目/章节双层计时，秒） ---------- */
+let TICKN = 0, LAST_GO = Date.now();
+function timeCtx() {
+  if (VIEW.scr === "flow" && S.cur) return {sub: S.cur.sub, ch: S.cur.ch};
+  if (VIEW.scr === "chapters" && VIEW.sub) return {sub: VIEW.sub, ch: null};
+  if (VIEW.scr === "dex" && DEX_OPEN && KP[DEX_OPEN])
+    return {sub: KP[DEX_OPEN].subId, ch: KP[DEX_OPEN].chId};    // 图鉴特写卡也计入科+章
+  if (VIEW.scr === "q") {
+    const q = QS[VIEW.q];
+    const kp = q && KP[q.kps[0]];
+    if (kp) return {sub: kp.subId, ch: kp.chId};
+  }
+  return null;
+}
+setInterval(() => {
+  if (!S || SIM) return;
+  if (document.visibilityState !== "visible") return;
+  evViewTick();
+  if (++HB_N >= 300) { HB_N = 0; logEv("hb", {scr: VIEW.scr}); }   // 5分钟在场心跳
+  const c = timeCtx();
+  tintTick(c);
+  if (!c) return;
+  S.time.subj[c.sub] = (S.time.subj[c.sub] || 0) + 1;
+  if (c.ch) S.time.ch[c.ch] = (S.time.ch[c.ch] || 0) + 1;
+  if (++TICKN % 15 === 0) save();
+}, 1000);
+/* 反拖延渐变：计时场景中 5/10/15 分钟未推进（GO/选答案）→ 三级变色，终极版红光脉动 */
+function tintTick(ctx) {
+  if (!ctx) LAST_GO = Date.now();
+  const m = (Date.now() - LAST_GO) / 60000;
+  const lv = ctx ? (m >= 15 ? 3 : m >= 10 ? 2 : m >= 5 ? 1 : 0) : 0;
+  if (lv !== EV_TINT) { logEv("tint", {lv: lv, m: Math.floor(m)}); EV_TINT = lv; }
+  for (let i = 1; i <= 3; i++) document.body.classList.toggle("tint" + i, lv === i);
+  const lab = document.getElementById("tintlab");
+  if (lab) lab.textContent = lv >= 2 ? "未推进 " + Math.floor(m) + " 分钟" : "";
+}
+function fmtT(sec) {
+  if (!sec || sec < 60) return sec ? sec + "s" : "";
+  return sec < 3600 ? Math.round(sec / 60) + "m" : (sec / 3600).toFixed(1) + "h";
+}
+
+/* ---------- save-file binding（进度直存到磁盘文件，File System Access API） ---------- */
+let FH = null, FH_OK = false, FH_TIMER = null;
+function idbOpen() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open("ky408fs", 1);
+    r.onupgradeneeded = () => r.result.createObjectStore("kv");
+    r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+  });
+}
+async function idbSet(k, v) {
+  const db = await idbOpen();
+  return new Promise((res, rej) => {
+    const tx = db.transaction("kv", "readwrite");
+    tx.objectStore("kv").put(v, k);
+    tx.oncomplete = res; tx.onerror = () => rej(tx.error);
+  });
+}
+async function idbGet(k) {
+  const db = await idbOpen();
+  return new Promise((res, rej) => {
+    const tx = db.transaction("kv", "readonly");
+    const rq = tx.objectStore("kv").get(k);
+    rq.onsuccess = () => res(rq.result); rq.onerror = () => rej(rq.error);
+  });
+}
+async function bindSaveFile() {
+  if (!window.showSaveFilePicker) return;
+  try {
+    FH = await showSaveFilePicker({suggestedName: "progress.json",
+      types: [{description: "JSON", accept: {"application/json": [".json"]}}]});
+    await idbSet("fh", FH);
+    FH_OK = true; fileFlush(); renderHome();
+  } catch (e) {}
+}
+async function reconnectFile() {
+  if (!FH) return;
+  try {
+    let p = await FH.queryPermission({mode: "readwrite"});
+    if (p !== "granted") p = await FH.requestPermission({mode: "readwrite"});
+    FH_OK = (p === "granted");
+    if (FH_OK) fileFlush();
+  } catch (e) { FH_OK = false; }
+  renderHome();
+}
+async function fileWriteNow() {
+  if (!FH || !FH_OK) return;
+  try { const w = await FH.createWritable(); await w.write(JSON.stringify(S, null, 1)); await w.close(); }
+  catch (e) { FH_OK = false; }
+}
+function fileFlush() {
+  if (!FH || !FH_OK) return;
+  clearTimeout(FH_TIMER);
+  FH_TIMER = setTimeout(fileWriteNow, 1200);
+}
+
+/* ============================== audio ============================== */
+let AC = null;
+function ac() { if (!AC) { try { AC = new (window.AudioContext||window.webkitAudioContext)(); } catch(e){} } return AC; }
+function env(g, t0, a, d, peak) {
+  g.gain.setValueAtTime(0.0001, t0); g.gain.linearRampToValueAtTime(peak, t0+a);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0+a+d);
+}
+function sndNext() {            /* next-screen blip */
+  const c = ac(); if (!c) return; const t = c.currentTime;
+  const o = c.createOscillator(), g = c.createGain();
+  o.type = "sine"; o.frequency.setValueAtTime(880, t); o.frequency.exponentialRampToValueAtTime(1320, t+0.05);
+  env(g, t, 0.005, 0.07, 0.10); o.connect(g).connect(c.destination); o.start(t); o.stop(t+0.09);
+}
+function sndSurface() {         /* question surfaces: low sting */
+  const c = ac(); if (!c) return; const t = c.currentTime;
+  const o = c.createOscillator(), g = c.createGain();
+  o.type = "square"; o.frequency.setValueAtTime(220, t); o.frequency.exponentialRampToValueAtTime(98, t+0.20);
+  env(g, t, 0.004, 0.24, 0.09); o.connect(g).connect(c.destination); o.start(t); o.stop(t+0.26);
+  const o2 = c.createOscillator(), g2 = c.createGain();
+  o2.type = "sine"; o2.frequency.setValueAtTime(440, t+0.02); o2.frequency.exponentialRampToValueAtTime(180, t+0.18);
+  env(g2, t+0.02, 0.004, 0.18, 0.05); o2.connect(g2).connect(c.destination); o2.start(t+0.02); o2.stop(t+0.24);
+}
+function sndCard() {            /* card drop: triangle arpeggio */
+  const c = ac(); if (!c) return; const t = c.currentTime;
+  [523.25, 659.25, 783.99].forEach((f, i) => {
+    const o = c.createOscillator(), g = c.createGain();
+    o.type = "triangle"; o.frequency.value = f;
+    env(g, t + i*0.07, 0.006, 0.16, 0.09);
+    o.connect(g).connect(c.destination); o.start(t + i*0.07); o.stop(t + i*0.07 + 0.2);
+  });
+}
+
+/* ============================== quotes (经典名言) ============================== */
+/* 按进度选名言：优先当前在读科目"前方1~2章"的内容，勾起对后面章节的兴趣 */
+function chProgressNo() {
+  const m = {};
+  for (const s of DATA.levels.subjects) {
+    m[s.id] = 0;
+    for (const c of s.chapters)
+      for (const sec of (c.sections || []))
+        if (sec.points.some(p => S.done[p.id])) { m[s.id] = Math.max(m[s.id], c.no); break; }
+  }
+  return m;
+}
+function pickQuote() {
+  const qs = DATA.quotes || [];
+  if (!qs.length) return null;
+  const cur = chProgressNo();
+  const subj = S.cur ? S.cur.sub : null;
+  const hereCh = subj && chById(S.cur.ch) ? chById(S.cur.ch).c.no : 0;
+  // 优先级：正在学的章 → 同科目马上要学的1~2章 → 任意科目已学过的章 → 全部
+  let pool = [];
+  if (subj) pool = qs.filter(q => q.subject === subj && q.ch === hereCh);
+  if (!pool.length && subj) pool = qs.filter(q => q.subject === subj && q.ch > hereCh && q.ch <= hereCh + 2);
+  if (!pool.length) pool = qs.filter(q => (cur[q.subject] || 0) >= q.ch);
+  if (!pool.length) pool = qs;
+  let h = 0;
+  const t = today();
+  for (let i = 0; i < t.length; i++) h = (h * 31 + t.charCodeAt(i)) >>> 0;
+  return pool[(h + (S.quoteOff || 0)) % pool.length];
+}
+function rolling7() { let s = 0; for (let i = 0; i < 7; i++) s += kpDayCount(addDays(today(), -i)); return s; }
+
+/* ============================== surfacing engine ============================== */
+/* queue items: {t:'card', kp} | {t:'qbare', q} | {t:'qans', q} */
+let QUEUE = [];
+function chComplete(chId) { return (CH_PTS[chId] || []).every(id => S.done[id]); }
+// 浮现引擎：每道题归属唯一「门槛点」GATE = 它在大纲顺序里最靠后的考点（学完它，该题全部考点恰好备齐）。
+// 题只在该门槛点出现，绝不在它命中的其它（更早的）点出现；初学到该点=首现、日后复习重经该点=再现，二者同一处；
+// 同一门槛点下的题一次全出（无 ≤2 上限、无托盘）。大题与单选同规则（自身考点全 done 即可，不再要求整章）。
+function ptQuestions(kp) {
+  return DATA.questions
+    .filter(q => GATE[q.id] === kp.id && q.kps.every(k => S.done[k]))
+    .sort((a, b) => a.year - b.year || a.no - b.no);   // old first, newest last (the climax)
+}
+function surfaceAt(kp, review) {
+  const qs = ptQuestions(kp);
+  // 题只在自己的门槛点出现：经过此点时，待呈现队列就「是」这一组（替换任何残留，绝不漂到别的点或前面）。
+  // 没做完就离开 → 这组随队列丢弃，下次再经过此点会原样整组重现；全集永远在真题库。
+  QUEUE = qs.map(q => ({t: "qbare", q: q.id}));
+  S.pendingQ = qs.map(q => q.id);
+  logEv(review ? "re" : "kp", {id: kp.id, pop: S.pendingQ.slice(), tray: 0});
+  if (qs.length) sndSurface();
+}
+function completePoint(kp) {
+  const first = !S.done[kp.id];
+  if (first) { S.done[kp.id] = today(); heatAdd("k"); }
+  surfaceAt(kp, !first);                                // 首次学完=首现；重经已 done 的点=复习再现（同一门槛点）
+  if (first && chComplete(kp.chId)) logEv("chdone", {ch: kp.chId});
+  save();
+}
+
+/* ============================== router / screens ============================== */
+let VIEW = {scr: "home"};      // mutable view descriptor
+const $app = document.getElementById("app");
+const $go = document.getElementById("go");
+const $undo = document.getElementById("undo");
+function esc(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function setWide(on) { document.body.classList.toggle("wide", on); }
+function goBtn(show, undo) {
+  $go.classList.toggle("hide", !show);
+  $undo.classList.toggle("hide", !undo);
+  coachVis();
+}
+function detailHtml(d) {
+  return String(d || "").split("\n").map((ln, i) =>
+    `<div class="ln" style="animation-delay:${i * 70}ms">${esc(ln)}</div>`).join("");
+}
+
+function subjProgress(s) {
+  // pct 按真题密度加权：完成了多少"题量权重"，而非数过多少结构节点
+  let tot = 0, done = 0, tw = 0, dw = 0;
+  for (const c of s.chapters) for (const sec of (c.sections||[])) for (const p of sec.points) {
+    tot++; const w = HITS[p.id] || 0; tw += w;
+    if (S.done[p.id]) { done++; dw += w; }
+  }
+  const pct = tw ? Math.round(dw / tw * 100) : (tot ? Math.round(done / tot * 100) : 0);
+  return {tot, done, pct};
+}
+function topBar(crumb, backTo) {
+  return `<div class="top">` +
+    (backTo ? `<span class="back" data-nav="${backTo}">‹</span>` : "") +
+    `<span class="crumb">${esc(crumb)}</span></div>`;
+}
+
+/* ---------- home ---------- */
+function renderHome() {
+  goBtn(false); setWide(false);
+  const t = today(), ht = S.heat[t] || {k:0,q:0};
+  const unlockedToday = Object.keys(S.seen || {}).filter(id => S.seen[id] === t);   // 今日解锁=在题页点过 GO 或选项（含看答），与热力图"题"同源；反复看不重计
+  let h = "";
+  // subjects
+  const lockedNames = [];
+  for (const s of DATA.levels.subjects) {
+    const pr = subjProgress(s);
+    if (pr.tot === 0) { lockedNames.push(s.name); continue; }
+    h += `<div class="subj" data-sub="${s.id}">
+      <div class="row"><span class="nm">${esc(s.name)}</span>
+      <span class="small dim mono">${pr.done}/${pr.tot} · ${pr.pct}%${S.time.subj[s.id] ? " · " + fmtT(S.time.subj[s.id]) : ""}</span></div>
+      <div class="bar"><i style="width:${pr.pct}%"></i></div></div>`;
+  }
+  // 英语一·真题入口卡（象胥）：与四科同族 .subj，右上角 universe 是语法体系，这里是历年真题
+  if (Object.keys(EXAM).length) {
+    const ep = examProgress();
+    h += `<div class="subj en" data-nav="exam">
+      <div class="row"><span class="nm"><span class="en-orb"></span>英语一 · 真题</span>
+      <span class="small dim mono">${ep.done}/${ep.tot} · ${ep.pct}%</span></div>
+      <div class="bar"><i style="width:${ep.pct}%"></i></div></div>`;
+  }
+  if (lockedNames.length) h += `<div class="locked-row">${lockedNames.join("　")}</div>`;
+  // 今日解锁真题：今天在题页点过 GO 或选项的题（含看答；反复看不重计），数目恒等于热力图"题"；答错带 ✗，点开可复盘
+  if (unlockedToday.length) {
+    h += `<div class="tray"><div class="small dim" style="margin-bottom:6px">今日解锁真题 · ${unlockedToday.length}</div>`;
+    for (const id of unlockedToday) {
+      const q = QS[id]; if (!q) continue;
+      const wrong = S.wrongs.includes(id);
+      h += `<span class="qchip" data-q="${id}">${q.year}·${q.no}${q.type === "big" ? "综" : ""}${wrong ? " ✗" : ""}</span>`;
+    }
+    h += `</div>`;
+  }
+  // quote of the day（按进度面向"前方章节"）
+  const qt = pickQuote();
+  if (qt) h += `<div class="quote" data-act="quote" title="点击换一条">
+    <div class="q-text">${esc(qt.text)}</div>
+    <div class="q-src">—— ${esc(qt.src)}</div></div>`;
+  if (S.ghost) h += `<div class="ghostbox">${ghostBars()}</div>`;
+  // heatmap
+  h += renderHeat();
+  h += `<div class="legend mono">今日 ${ht.k} 点 · ${unlockedToday.length} 题</div>`;
+  // footer
+  h += `<div class="foot">
+    <span data-nav="doubts">存疑 ${S.starred.length}</span>
+    <span data-nav="dex">图鉴</span>
+    <span data-nav="bank">真题库</span>
+    <span data-act="ghost">幽灵线${S.ghost ? " ✓" : ""}</span></div>`;
+  $app.innerHTML = h;
+}
+function bestDay() {
+  let b = 0;
+  for (const d in S.heat) b = Math.max(b, S.heat[d].k || 0);
+  return b;
+}
+function ghostBars() {
+  if (!S.ghost) return "";
+  const bd = bestDay(), cur = kpDayCount(today());
+  const mx = Math.max(bd, cur, 1);
+  return `<div style="margin-top:.4rem">今日 ${cur}<div class="bar" style="margin-top:.25rem"><i style="width:${Math.round(cur/mx*100)}%"></i></div>
+  最佳一天 ${bd}<div class="bar" style="margin-top:.25rem"><i style="width:${Math.round(bd/mx*100)}%;background:#6e6e73"></i></div></div>`;
+}
+function renderHeat() {
+  const t = today();
+  const weeks = 20;
+  const qByDay = {};                           // 真题"题"数=按解锁日期(seen=点过GO或选项)现算，反复看不重计，与 done 解耦
+  for (const id in (S.seen || {})) { const d = S.seen[id]; if (typeof d === "string" && d.length === 10) qByDay[d] = (qByDay[d] || 0) + 1; }
+  // align: column per week, Mon..Sun rows
+  const tEnd = new Date(t + "T12:00:00");
+  const wdEnd = (tEnd.getDay() + 6) % 7;       // Mon=0
+  let h = `<div class="heat"><div class="heat-g">`;
+  for (let w = weeks - 1; w >= 0; w--) {
+    h += `<div class="heat-col">`;
+    for (let r = 0; r < 7; r++) {
+      const off = w * 7 + (wdEnd - r);
+      const ds = addDays(t, -off);
+      if (ds > t) { h += `<i style="visibility:hidden"></i>`; continue; }
+      const e = S.heat[ds] || {k:0,q:0};
+      const qd = qByDay[ds] || 0;
+      const n = e.k + qd;
+      const c = n === 0 ? "#1c1c1e" : n <= 2 ? "#3a3a3c" : n <= 5 ? "#6e6e73" : n <= 9 ? "#aeaeb2" : "#f5f5f7";
+      h += `<i style="background:${c}" title="${ds}：知识点 ${e.k} · 真题 ${qd}"></i>`;
+    }
+    h += `</div>`;
+  }
+  h += `</div></div>`;
+  return h;
+}
+
+/* ---------- chapters ---------- */
+function renderChapters(subId) {
+  goBtn(false); setWide(false);
+  const s = DATA.levels.subjects.find(x => x.id === subId);
+  let h = topBar(s.name, "home");
+  for (const c of s.chapters) {
+    const locked = c.locked || !(c.sections && c.sections.length);
+    let tot = 0, done = 0;
+    for (const sec of (c.sections||[])) for (const p of sec.points) { tot++; if (S.done[p.id]) done++; }
+    h += `<div class="chp${locked ? " locked" : ""}" ${locked ? "" : `data-ch="${c.id}"`}>
+      <span>第${c.no}章 ${esc(c.title)}</span>
+      <span class="small dim mono">${locked ? "未生成" : done + "/" + tot + " · " + (CH_QN[c.id] || 0) + "题" + (S.time.ch[c.id] ? " · " + fmtT(S.time.ch[c.id]) : "")}</span></div>`;
+  }
+  $app.innerHTML = h;
+}
+
+/* ---------- linear flow ---------- */
+function chById(chId) {
+  for (const s of DATA.levels.subjects) for (const c of s.chapters) if (c.id === chId) return {s, c};
+  return null;
+}
+function startChapter(chId) {
+  const {s, c} = chById(chId);
+  // resume: if cursor already in this chapter, keep it; else start at first unfinished point
+  if (!(S.cur && S.cur.ch === chId)) {
+    let si = 0, pi = 0, found = false;
+    outer:
+    for (si = 0; si < c.sections.length; si++) {
+      const pts = c.sections[si].points;
+      for (pi = 0; pi < pts.length; pi++) {
+        if (!S.done[pts[pi].id]) { found = true; break outer; }
+      }
+    }
+    if (!found) { si = 0; pi = 0; }              // chapter fully done → review from top
+    S.cur = {sub: s.id, ch: chId, sec: si, pt: pi, ph: "sec"};
+    save();
+  }
+  VIEW = {scr: "flow"};
+  renderFlow();
+}
+function curCh() { return chById(S.cur.ch).c; }
+function renderFlow() {
+  const c = curCh();
+  const sec = c.sections[S.cur.sec];
+  goBtn(true, true);
+  if (S.cur.ph === "sec") {
+    $app.innerHTML = topBar("", "chapters") +
+      `<div class="stage"><div class="sec-big">${esc(sec.title)}</div>
+       <div class="sec-sub">${sec.points.length}</div></div>`;
+  } else if (S.cur.ph === "bare") {
+    const p = sec.points[S.cur.pt];
+    $app.innerHTML = topBar("", "chapters") +
+      `<div class="stage"><div class="card r${tier(p.id)}">
+         <div class="knm">${esc(p.title)}</div>
+       </div></div>`;
+  } else {
+    const p = sec.points[S.cur.pt];
+    $app.innerHTML = topBar("", "chapters") +
+      `<div class="stage"><div class="pt-bare">${esc(p.title)}</div>
+       <div class="pt-detail">${detailHtml(p.detail)}</div></div>`;
+  }
+}
+function flowBack() {
+  if (!S.cur) return;
+  const c = curCh();
+  if (S.cur.ph === "detail") S.cur.ph = "bare";
+  else if (S.cur.ph === "bare") {
+    if (S.cur.pt > 0) { S.cur.pt--; S.cur.ph = "detail"; }
+    else S.cur.ph = "sec";
+  } else if (S.cur.ph === "sec") {
+    if (S.cur.sec > 0) {
+      S.cur.sec--; S.cur.pt = c.sections[S.cur.sec].points.length - 1; S.cur.ph = "detail";
+    }
+  } else if (S.cur.ph === "done") {
+    S.cur.sec = c.sections.length - 1;
+    S.cur.pt = c.sections[S.cur.sec].points.length - 1; S.cur.ph = "detail";
+  }
+  save(); VIEW = {scr:"flow"}; renderFlow();
+}
+function curChCrumb(c) {
+  const s = DATA.levels.subjects.find(x => x.id === S.cur.sub);
+  return `${s.name} · 第${c.no}章`;
+}
+/* advance on GO within flow */
+function flowGo() {
+  const c = curCh();
+  const sec = c.sections[S.cur.sec];
+  if (S.cur.ph === "sec") { S.cur.ph = "bare"; S.cur.pt = Math.min(S.cur.pt, sec.points.length-1); save(); renderFlow(); sndCard(); return; }
+  const p = sec.points[S.cur.pt];
+  if (S.cur.ph === "bare" && (p.detail || "").trim()) {
+    S.cur.ph = "detail"; save(); renderFlow(); sndNext(); return;
+  }
+  // detail shown (or point has no detail yet) → complete + advance
+  completePoint(p);
+  if (S.cur.pt + 1 < sec.points.length) { S.cur.pt++; S.cur.ph = "bare"; }
+  else if (S.cur.sec + 1 < c.sections.length) { S.cur.sec++; S.cur.pt = 0; S.cur.ph = "sec"; }
+  else { S.cur.ph = "done"; }
+  save();
+  pumpQueue();
+}
+/* show next queue item, or resume flow */
+function pumpQueue() {
+  if (QUEUE.length) {
+    const it = QUEUE.shift();
+    if (it.t === "qbare") { VIEW = {scr:"q", q: it.q, ph:"bare", ret:"flow"}; renderQ(); return; }
+  }
+  if (S.cur && S.cur.ph === "done") { VIEW = {scr:"chdone"}; renderChDone(); return; }
+  VIEW = {scr:"flow"}; renderFlow();
+  if (S.cur.ph === "bare") sndCard(); else sndNext();
+}
+function renderChDone() {
+  goBtn(true);
+  const c = curCh();
+  $app.innerHTML = topBar("", "chapters") +
+    `<div class="stage"><div class="sec-big">第${c.no}章 完</div>
+     <div class="sec-sub">${esc(c.title)}</div></div>`;
+}
+
+/* ---------- question ---------- */
+function renderQ() {
+  const q = QS[VIEW.q];
+  goBtn(true); setWide(false);
+  const starred = S.starred.includes(q.id);
+  const big = q.type === "big";
+  let h = topBar("", VIEW.ret === "flow" ? "chapters" : VIEW.ret) +
+    `<div class="qwrap"><span class="star ${starred?"on":""}" data-act="star">${starred ? "★" : "☆"}</span>
+     <div class="qtag">${q.year} 年统考 · 第 ${q.no} 题${big ? " · 综合应用" : ""}</div>
+     <div class="qstem">${esc(q.stem)}</div>`;
+  if (q.fig) h += `<div class="qfig">${esc(q.fig)}</div>`;
+  if (big) {
+    for (const p of q.parts) {
+      const head = [p.label, p.q].filter(Boolean).join(" ");
+      if (!head && VIEW.ph !== "ans") continue;
+      h += `<div class="qpart">${esc(head)}` +
+        (VIEW.ph === "ans" ? `<div class="qpans">${esc(p.ans)}</div>` : "") + `</div>`;
+    }
+    if (VIEW.ph === "ans") {
+      h += `<div class="qans">` + (q.analysis ? `<div class="qana">${esc(q.analysis)}</div>` : "") +
+        `<div class="small dim" style="margin-top:14px">命中：${q.kps.map(k => KP[k] ? KP[k].title : k).join(" / ")}</div></div>`;
+    }
+  } else {
+    h += `<div class="qopts">`;
+    for (const k of ["A","B","C","D"]) {
+      const hit = VIEW.ph === "ans" && q.answer === k;
+      const sel = VIEW.ph === "ans" && VIEW.sel === k && k !== q.answer;
+      h += `<div class="qopt${hit ? " hit" : ""}${sel ? " sel" : ""}"${VIEW.ph === "bare" ? ` data-opt="${k}"` : ""}>${k}. ${esc(q.options[k])}${sel ? "　✗" : ""}</div>`;
+    }
+    h += `</div>`;
+    if (VIEW.ph === "ans") {
+      h += `<div class="qans"><div>答案：${q.answer}</div>
+            <div class="qana">${esc(q.analysis)}</div>
+            <div class="small dim" style="margin-top:14px">命中：${q.kps.map(k => KP[k] ? KP[k].title : k).join(" / ")}</div></div>`;
+    }
+  }
+  h += `</div>`;
+  $app.innerHTML = h;
+}
+function reveal() {
+  const q = QS[VIEW.q];
+  if (VIEW.sel) {
+    logEv("ans", {q: q.id, sel: VIEW.sel, ok: VIEW.sel === q.answer});
+    if (VIEW.sel !== q.answer) {
+      if (!S.wrongs.includes(q.id)) S.wrongs.push(q.id);          // ✗ 历史标记
+      if (!S.starred.includes(q.id)) S.starred.push(q.id);        // 答错自动加星；觉得没价值就手动摘星
+    }
+    save();
+  } else {
+    if (!S.seen[q.id]) logEv("peek", {q: q.id});                  // 仅"第一次遇到就看答案"才记；做过的题为够到后面的题而 GO 推过去=纯导航，无意义，不记
+  }
+  VIEW.ph = "ans"; renderQ();
+}
+function qGo() {
+  const q = QS[VIEW.q];
+  if (VIEW.ph === "bare") { reveal(); return; }
+  if (VIEW.ret !== "bank") {
+    // 首次遇到才记解锁日期并计入热力图"题"；复习重看不刷新日期、不重计（与"今日解锁真题"同源）
+    if (!S.seen[q.id]) { S.seen[q.id] = today(); heatAdd("q"); }
+    S.pendingQ = S.pendingQ.filter(x => x !== q.id);
+    save();
+  }
+  if (VIEW.ret === "flow") { pumpQueue(); }
+  else if (VIEW.ret === "doubts") { VIEW = {scr:"doubts"}; renderDoubts(); }
+  else if (VIEW.ret === "dex") { VIEW = {scr:"dex"}; renderDex(); }
+  else if (VIEW.ret === "bank") { VIEW = {scr:"bank"}; renderBank(); }
+  else { VIEW = {scr:"home"}; renderHome(); }
+}
+
+/* ---------- doubts (存疑夹) ---------- */
+function doubtIds() { return [...S.starred]; }   // 存疑夹成员=星标；答错自动入星，摘星即移出
+function renderDoubts() {
+  goBtn(false); setWide(false);
+  let h = topBar("存疑", "home");
+  const ids = doubtIds();
+  if (!ids.length) h += `<div class="dim">空。答错的题和点 ☆ 的题会进入这里。</div>`;
+  const SUBJ = {ds: "数据结构", co: "组成原理", os: "操作系统", net: "计算机网络"};
+  const groups = {}, rest = [];
+  for (const id of ids) {
+    const q = QS[id]; if (!q) continue;
+    const kp = KP[q.kps[0]];
+    if (kp) {
+      const key = kp.subId + "|" + kp.chId;
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(q);
+    } else rest.push(q);
+  }
+  const row = q => {
+    const mk = (S.wrongs.includes(q.id) ? "✗ " : "") + (S.starred.includes(q.id) ? "★ " : "");
+    return `<div class="dq" data-q2="${q.id}"><span class="dim mono">${mk}${q.year}·${q.no}${q.type === "big" ? "·综" : ""}</span>　${esc(q.stem.slice(0, 46))}…</div>`;
+  };
+  for (const s of DATA.levels.subjects)
+    for (const c of s.chapters) {
+      const g = groups[s.id + "|" + c.id];
+      if (!g) continue;
+      h += `<div class="dex-ch">${SUBJ[s.id] || s.id} · 第${c.no}章 ${esc(c.title)}　<span class="mono">${g.length}</span></div>`;
+      for (const q of g) h += row(q);
+    }
+  for (const q of rest) h += row(q);
+  $app.innerHTML = h;
+}
+
+/* ---------- dex (图鉴) ---------- */
+let DEX_TAB = "os";
+let DEX_OPEN = null;
+function renderDex() {
+  goBtn(false); setWide(true);
+  let h = topBar("图鉴", "home") + `<div class="dex-tabs">`;
+  for (const s of DATA.levels.subjects)
+    h += `<span class="${DEX_TAB===s.id?"on":""}" data-tab="${s.id}">${esc(s.name)}</span>`;
+  h += `</div>`;
+  const s = DATA.levels.subjects.find(x => x.id === DEX_TAB);
+  let shown = 0, ownAll = 0, totAll = 0;
+  let body = "";
+  for (const c of s.chapters) {
+    const kps = [];
+    for (const sec of (c.sections||[])) for (const p of sec.points)
+      if (HITS[p.id]) kps.push(p);   // no question, no card
+    if (!kps.length) continue;
+    shown++;
+    const own = kps.filter(p => S.done[p.id]).length;
+    ownAll += own; totAll += kps.length;
+    body += `<div class="dex-ch">第${c.no}章 ${esc(c.title)}　<span class="mono">${own}/${kps.length}</span></div><div class="dex-grid">`;
+    for (const p of kps) {
+      const o = !!S.done[p.id], tr = tier(p.id);
+      const qn = HITS[p.id] || 0;
+      body += `<div class="dex-c t${tr} ${o ? "own" : "miss"}"${qn ? ` data-kp="${p.id}"` : ""}>
+        <div>${o ? esc(p.title) : "？？？"}${qn ? `<span class="qn">${qn}</span>` : ""}</div></div>`;
+    }
+    body += `</div>`;
+  }
+  if (!shown) h += `<div class="dim">内容未生成。</div>`;
+  else h += `<div class="small dim" style="margin-bottom:.8rem">${ownAll} / ${totAll}</div>` + body;
+  // 卡片特写浮层：其余压暗，真题横排陈列
+  if (DEX_OPEN && KP[DEX_OPEN]) {
+    const p = KP[DEX_OPEN];
+    const o = !!S.done[p.id], tr = tier(p.id);
+    const qs = DATA.questions.filter(q => q.kps.includes(p.id));
+    h += `<div class="dexovl" data-act="dexclose"><div class="dex-show t${tr} ${o ? "own" : "miss"}">
+      <div class="ds-title">${o ? esc(p.title) : "？？？"}</div>
+      <div class="ds-meta">${esc(s.name)} · ${esc((SEC[p.secId] || {}).title || "")} · 命中 ${qs.length} 题</div>
+      <div class="ds-chips">${qs.map(q =>
+        `<span class="qchip" data-q3="${q.id}">${q.year}·${q.no}${q.type === "big" ? "综" : ""}</span>`).join("")}</div>
+    </div></div>`;
+  }
+  $app.innerHTML = h;
+}
+
+/* ---------- bank (真题库) ---------- */
+let BANK_Y = null;
+function renderBank() {
+  goBtn(false); setWide(true);
+  const years = [...new Set(DATA.questions.map(q => q.year))].sort((a, b) => b - a);
+  if (!years.includes(BANK_Y)) BANK_Y = years[0];
+  let h = topBar("真题库", "home") + `<div class="bank-y">`;
+  for (const y of years) h += `<span class="${y === BANK_Y ? "on" : ""}" data-year="${y}">${y}</span>`;
+  h += `</div>`;
+  const SUBJ = {ds: "数构", co: "组成", os: "系统", net: "网络"};
+  const qs = DATA.questions.filter(q => q.year === BANK_Y).sort((a, b) => a.no - b.no);
+  for (const q of qs) {
+    const mk = (S.seen[q.id] ? " ✓" : "") + (S.starred.includes(q.id) ? " ★" : "") + (S.wrongs.includes(q.id) ? " ✗" : "");
+    h += `<div class="bq" data-q4="${q.id}"><span class="tag mono">${q.no}${q.type === "big" ? "综" : ""} ${SUBJ[q.subject] || ""}${mk}</span>${esc(q.stem.slice(0, 56))}…</div>`;
+  }
+  $app.innerHTML = h;
+}
+
+/* ============================== 英语一 · 真题（象胥 2026-07） ============================== */
+/* 与 408 完全隔离：独立数据源 window.EXAM_DATA / EXAM_DICT，独立视图 scr="exam"/"exampart"，
+   独立存档切片 S.exam；题型×年份矩阵，年份列数据驱动（新增 eng_YYYY_*.json → 重跑 build_exam_data.py 即扩容）。*/
+const EXAM = window.EXAM_DATA || {};
+const EXDICT = window.EXAM_DICT || {};
+const EXAM_ROWS = [
+  {id:"cloze",  name:"完形填空",    rng:"1–20",   kind:"cloze"},
+  {id:"r1",     name:"阅读 Text 1", rng:"21–25",  kind:"reading", idx:0},
+  {id:"r2",     name:"阅读 Text 2", rng:"26–30",  kind:"reading", idx:1},
+  {id:"r3",     name:"阅读 Text 3", rng:"31–35",  kind:"reading", idx:2},
+  {id:"r4",     name:"阅读 Text 4", rng:"36–40",  kind:"reading", idx:3},
+  {id:"partb",  name:"新题型",      rng:"41–45",  kind:"partb"},
+  {id:"transc", name:"翻译",        rng:"46–50",  kind:"transc"},
+  {id:"wa",     name:"小作文",      rng:"Part A", kind:"wa"},
+  {id:"wb",     name:"大作文",      rng:"Part B", kind:"wb"},
+];
+const EXAM_NOS = {cloze:[1,20], r1:[21,25], r2:[26,30], r3:[31,35], r4:[36,40], partb:[41,45]};
+let EXPICK = {}, EXREV = false;                     // 当前 section 临时作答与是否已对答案（不入存档，离场即弃）
+let EX_SEC = 0;                                     // 做题视图即时计时（秒）：每格独立、离场归零、纯会话不入 localStorage（与全局科目/章计时互不干扰）
+function exClockFmt(s) { const m = Math.floor(s / 60); return m + ":" + String(s % 60).padStart(2, "0"); }
+setInterval(() => {                                 // 独立一枚：只服务当前这格，离开做题视图即归零，页面不可见则暂停（不后台空跑）
+  if (VIEW.scr !== "exampart") { EX_SEC = 0; return; }
+  if (document.visibilityState !== "visible") return;
+  EX_SEC++;
+  const el = document.getElementById("extimer");
+  if (el) el.textContent = exClockFmt(EX_SEC);
+}, 1000);
+function examYears() { return Object.keys(EXAM).sort((a, b) => b - a); }   // 新年份在前，扩容自然
+function examRow(id) { return EXAM_ROWS.find(r => r.id === id); }
+function exKey(y, row) { return y + "|" + row; }
+function examProgress() {
+  const ys = examYears(), tot = ys.length * EXAM_ROWS.length;
+  let done = 0;
+  for (const y of ys) for (const r of EXAM_ROWS) {
+    const st = S.exam[exKey(y, r.id)];
+    if (st && (typeof st.n === "number" || st.seen)) done++;
+  }
+  return {done, tot, pct: tot ? Math.round(done / tot * 100) : 0};
+}
+
+/* ---------- 矩阵（题型 × 年份） ---------- */
+function renderExam() {
+  goBtn(false); setWide(true);
+  const years = examYears();
+  let h = topBar("英语一 · 真题", "home");
+  if (!years.length) { $app.innerHTML = h + `<div class="dim">暂无真题数据（生成 exam_data.js 后自动出现）。</div>`; return; }
+  const ep = examProgress();
+  h += `<div class="small dim" style="margin-bottom:1.1rem;line-height:1.7">${ep.done} / ${ep.tot} 格 · ${ep.pct}%　·　选择题作答即判分，翻译对参考译文，写作纯练笔　·　双击任意英文词查义</div>`;
+  h += `<div class="exam-grid" style="grid-template-columns:minmax(6rem,auto) repeat(${years.length},minmax(2.6rem,1fr))">`;
+  h += `<div class="exam-corner">题型＼年</div>`;
+  for (const y of years) h += `<div class="exam-hd">${y}</div>`;
+  for (const r of EXAM_ROWS) {
+    h += `<div class="exam-rl"><span class="exam-rn">${esc(r.name)}</span><span class="exam-rr mono">${esc(r.rng)}</span></div>`;
+    for (const y of years) h += examCell(y, r);
+  }
+  h += `</div>`;
+  $app.innerHTML = h;
+}
+function examCell(y, r) {
+  const key = exKey(y, r.id), st = S.exam[key], scored = EXAM_NOS[r.id];
+  let cls = "exam-cell", inner = `<span class="exam-dot">·</span>`;
+  if (scored && st && typeof st.n === "number") {
+    const ratio = st.d ? st.n / st.d : 0;
+    cls += " done " + (ratio >= .8 ? "hi" : ratio >= .5 ? "mid" : "lo");
+    inner = `<span class="exam-sc">${st.n}<i>/${st.d}</i></span>`;
+  } else if (!scored && st && st.seen) {
+    cls += " done seen"; inner = `<span class="exam-ck">✓</span>`;
+  }
+  return `<div class="${cls}" data-excell="${key}" title="${esc(y + " " + r.name)}">${inner}</div>`;
+}
+
+/* ---------- 做题 ---------- */
+function enterExam(y, row) {
+  const r = examRow(row);
+  if (!EXAM[y] || !r) return;
+  VIEW = {scr: "exampart", year: y, row: row};
+  EXPICK = {}; EXREV = false; EX_SEC = 0;               // 进这格：计时从 0 起跳
+  if (r.id === "wa" || r.id === "wb") {                 // 写作纯练笔：进入即算「已阅」
+    const k = exKey(y, r.id);
+    if (!(S.exam[k] && S.exam[k].seen)) { S.exam[k] = {seen: 1}; save(); }
+  }
+  renderExamPart();
+}
+function renderExamPart() {
+  goBtn(false); setWide(false);
+  const y = VIEW.year, r = examRow(VIEW.row), d = EXAM[y];
+  if (!d || !r) { VIEW = {scr: "exam"}; renderExam(); return; }
+  let h = topBar(y + " · " + r.name, "exam") + `<span id="extimer">${exClockFmt(EX_SEC)}</span><div class="ex-wrap">`;
+  if (r.kind === "cloze") h += exCloze(d, exKey(y, r.id));
+  else if (r.kind === "reading") h += exReading(d, r, exKey(y, r.id));
+  else if (r.kind === "partb") h += exPartb(d, exKey(y, r.id));
+  else if (r.kind === "transc") h += exTransc(d);
+  else h += exWriting(d, r);
+  h += `</div>`;
+  $app.innerHTML = h;
+}
+function exBlankText(t) {    // 完形：__n__ → 编号空
+  return esc(t).replace(/__(\d+)__/g, `<span class="ex-blank">$1</span>`);
+}
+function exUnderline(t) {    // 翻译：<uN>…</uN> → 下划句（esc 后标记形如 &lt;uN&gt;）
+  return esc(t).replace(/&lt;u(\d+)&gt;/g, `<span class="ex-u">`).replace(/&lt;\/u\d+&gt;/g, `</span>`);
+}
+function exOpt(no, k, text, correct, inline) {
+  const sel = EXPICK[no] === k, hit = EXREV && correct === k, bad = EXREV && sel && k !== correct;
+  const cls = "ex-opt" + (inline ? " inl" : "") + (sel ? " sel" : "") + (hit ? " hit" : "") + (bad ? " bad" : "");
+  return `<span class="${cls}"${EXREV ? "" : ` data-exopt="${no}|${k}"`}><b>${k}</b>${text != null ? " " + esc(text) : ""}${bad ? " ✗" : ""}</span>`;
+}
+function exCloze(d, key) {
+  const c = d.cloze, ans = d.answers;
+  let h = `<div class="ex-dir">${esc(c.directions)}</div><div class="ex-passage">${exBlankText(c.text)}</div><div class="ex-items">`;
+  for (let n = 1; n <= 20; n++) {
+    const o = c.options[String(n)] || {};
+    h += `<div class="ex-item"><span class="ex-no">${n}</span><div class="ex-opts inl">` +
+      ["A","B","C","D"].map(k => exOpt(n, k, o[k], ans[String(n)], true)).join("") + `</div></div>`;
+  }
+  return h + `</div>` + exScore(key);
+}
+function exReading(d, r, key) {
+  const t = d.reading[r.idx], ans = d.answers;
+  let h = `<div class="ex-dir">${esc(d.reading_directions)}</div><div class="ex-ph">Text ${t.text_no}</div>` +
+    `<div class="ex-passage">${esc(t.passage)}</div><div class="ex-items">`;
+  for (const q of t.questions) {
+    h += `<div class="ex-item col"><div class="ex-stem"><span class="ex-no">${q.no}</span>${esc(q.stem)}</div><div class="ex-opts">` +
+      ["A","B","C","D"].map(k => exOpt(q.no, k, q.options[k], ans[String(q.no)], false)).join("") + `</div></div>`;
+  }
+  return h + `</div>` + exScore(key);
+}
+function exPartb(d, key) {
+  const pb = d.part_b, ans = d.answers, named = pb._kind === "named_items";
+  const letters = Object.keys(pb.paragraphs).sort();
+  let h = `<div class="ex-dir">${esc(pb.directions)}</div>`;
+  if (pb.layout_note) h += `<div class="ex-note">${esc(pb.layout_note)}</div>`;
+  h += `<div class="ex-pool">`;
+  for (const L of letters) h += `<div class="ex-para"><span class="ex-pl">${L}</span><span>${esc(pb.paragraphs[L])}</span></div>`;
+  h += `</div><div class="ex-items">`;
+  for (let no = 41; no <= 45; no++) {
+    let prompt;
+    if (named) {
+      const it = (pb.items || []).find(x => x.no === no) || {};
+      prompt = `<span class="ex-nm">${esc(it.name || "")}</span> ${esc(it.text || "")}`;
+    } else prompt = `<span class="ex-slot">选段 ${no}</span>`;
+    h += `<div class="ex-item col"><div class="ex-stem"><span class="ex-no">${no}</span>${prompt}</div><div class="ex-opts inl lett">` +
+      letters.map(L => exOpt(no, L, null, ans[String(no)], true)).join("") + `</div></div>`;
+  }
+  return h + `</div>` + exScore(key);
+}
+function exTransc(d) {
+  const pc = d.part_c, tr = d.translations;
+  let h = `<div class="ex-dir">${esc(pc.directions)}</div><div class="ex-passage">${exUnderline(pc.text)}</div><div class="ex-items">`;
+  for (let no = 46; no <= 50; no++) {
+    h += `<div class="ex-tr"><div class="ex-stem"><span class="ex-no">${no}</span>${esc(pc.sentences[String(no)] || "")}</div>` +
+      `<textarea class="ex-ta" spellcheck="false" placeholder="在此自译…"></textarea>` +
+      `<div class="ex-ref hidden" data-ref="${no}">${esc(tr[String(no)] || "")}</div>` +
+      `<span class="ex-btn ghost" data-exact="ref|${no}">参考译文</span></div>`;
+  }
+  return h + `</div>`;
+}
+function exWriting(d, r) {
+  const w = r.id === "wa" ? (d.writing.part_a || {}) : (d.writing.part_b || {});
+  let h = `<div class="ex-dir">${esc(w.directions || "")}</div>`;
+  if (r.id === "wa" && w.email) h += `<div class="ex-passage">${esc(w.email)}</div>`;
+  if (r.id === "wb" && w.figure) h += `<div class="ex-fig">${esc(w.figure)}</div>`;
+  return h + `<textarea class="ex-ta big" spellcheck="false" placeholder="在此练笔…（不判分，仅供练习，离开不保存）"></textarea>`;
+}
+function exScore(key) {
+  const rng = EXAM_NOS[examRow(VIEW.row).id];
+  if (!rng) return "";
+  const tot = rng[1] - rng[0] + 1;
+  if (EXREV) {
+    const st = S.exam[key] || {n: 0, d: tot};
+    const d = EXAM[VIEW.year], exp = d && d.explain && d.explain[VIEW.row];   // 预留：未来 EXAM[year].explain[rowId] 若有解析则显影；现无此字段＝不渲染（reveal 区可无痛扩容）
+    return `<div class="ex-result">对答案：<b>${st.n}</b> / ${tot}　<span class="ex-btn" data-exact="redo">重做</span></div>` +
+      (exp ? `<div class="ex-explain">${esc(exp)}</div>` : ``);
+  }
+  let picked = 0;
+  for (let n = rng[0]; n <= rng[1]; n++) if (EXPICK[n]) picked++;
+  return `<div class="ex-actions"><span class="ex-btn go${picked ? "" : " off"}" data-exact="submit">对答案</span><span class="ex-picked">已选 ${picked} / ${tot}</span></div>`;
+}
+function examSubmit() {
+  const r = examRow(VIEW.row), rng = EXAM_NOS[r.id];
+  if (!rng) return;
+  const ans = EXAM[VIEW.year].answers;
+  let n = 0, tot = rng[1] - rng[0] + 1;
+  for (let no = rng[0]; no <= rng[1]; no++) if (EXPICK[no] === ans[String(no)]) n++;
+  S.exam[exKey(VIEW.year, r.id)] = {n, d: tot};
+  EXREV = true; save(); renderExamPart();
+}
+function examRevealRef(no) {                          // 翻译：亮某句参考译文（就地 DOM 改，保住练笔框内容不被重渲染冲掉）
+  const ref = $app.querySelector(`.ex-ref[data-ref="${no}"]`);
+  if (ref) ref.classList.remove("hidden");
+  const btn = $app.querySelector(`.ex-btn[data-exact="ref|${no}"]`);
+  if (btn) btn.style.display = "none";
+  const k = exKey(VIEW.year, "transc");
+  if (!(S.exam[k] && S.exam[k].seen)) { S.exam[k] = {seen: 1}; save(); }
+}
+
+/* ---------- 双击查词（EXAM_DICT，仅做题视图内；质感承语法宇宙） ---------- */
+const $exdict = document.getElementById("exdict");
+function hideExDict() { if ($exdict) $exdict.classList.remove("show"); }
+function showExDict(x, y, word, def) {
+  if (!$exdict) return;
+  $exdict.innerHTML = `<div class="xd-w">${esc(word)}</div>` +
+    `<div class="xd-d${def ? "" : " xd-x"}">${def ? esc(def) : "未收录"}</div>`;
+  const pad = 12, w = 260;
+  $exdict.style.maxWidth = w + "px";
+  $exdict.style.left = Math.max(pad, Math.min(x + 8, window.innerWidth - w - pad)) + "px";
+  $exdict.style.top = (y + 18) + "px";
+  $exdict.classList.add("show");
+  requestAnimationFrame(() => {                       // 贴底则翻到光标上方
+    const rc = $exdict.getBoundingClientRect();
+    if (rc.bottom > window.innerHeight - pad) $exdict.style.top = Math.max(pad, y - rc.height - 12) + "px";
+  });
+}
+document.addEventListener("dblclick", (e) => {
+  if (VIEW.scr !== "exampart") return;
+  const raw = (window.getSelection && String(window.getSelection())) || "";
+  const w = raw.trim().toLowerCase().replace(/[^a-z'\-]/g, "");
+  if (w.length < 2) { hideExDict(); return; }
+  showExDict(e.clientX, e.clientY, raw.trim(), EXDICT[w] || EXDICT[w.replace(/[-']/g, "")]);
+});
+window.addEventListener("scroll", hideExDict, true);
+
+/* ---------- export / import ---------- */
+const $ovl = document.getElementById("ovl");
+function showOvl(title, content, ops) {
+  document.getElementById("ovl-t").textContent = title;
+  document.getElementById("ovl-ta").value = content;
+  document.getElementById("ovl-ops").innerHTML = ops;
+  $ovl.style.display = "flex";
+}
+function doExport() {
+  const txt = JSON.stringify(S, null, 1);
+  // try download
+  try {
+    const b = new Blob([txt], {type: "application/json"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(b); a.download = "progress.json";
+    document.body.appendChild(a); a.click(); a.remove();
+  } catch (e) {}
+  showOvl("progress.json（已尝试下载；亦可全选复制保存）", txt,
+    `<span data-act="ovl-close">关闭</span>`);
+}
+function doImport() {
+  showOvl("粘贴 progress.json 内容后点导入", "",
+    `<span data-act="ovl-apply">导入</span><span data-act="ovl-close">取消</span>`);
+}
+
+/* ============================== input ============================== */
+document.body.addEventListener("click", (ev) => {
+  hideExDict();
+  const el = ev.target.closest("[data-nav],[data-sub],[data-ch],[data-q],[data-q2],[data-q3],[data-q4],[data-kp],[data-year],[data-act],[data-tab],[data-opt],[data-excell],[data-exopt],[data-exact]");
+  if (!el) return;
+  if (el.dataset.opt) {
+    if (VIEW.scr === "q" && VIEW.ph === "bare") { LAST_GO = Date.now(); VIEW.sel = el.dataset.opt; sndNext(); reveal(); }
+    return;
+  }
+  if (el.dataset.nav) {
+    const n = el.dataset.nav;
+    if (n === "home") { VIEW = {scr:"home"}; renderHome(); }
+    if (n === "chapters") { VIEW = {scr:"chapters", sub: S.cur ? S.cur.sub : "os"}; renderChapters(VIEW.sub); }
+    if (n === "doubts") { VIEW = {scr:"doubts"}; renderDoubts(); }
+    if (n === "dex") { VIEW = {scr:"dex"}; renderDex(); }
+    if (n === "bank") { VIEW = {scr:"bank"}; renderBank(); }
+    if (n === "exam") { VIEW = {scr:"exam"}; renderExam(); }
+    return;
+  }
+  if (el.dataset.sub) { VIEW = {scr:"chapters", sub: el.dataset.sub}; renderChapters(el.dataset.sub); return; }
+  if (el.dataset.ch) { startChapter(el.dataset.ch); return; }
+  if (el.dataset.q) { VIEW = {scr:"q", q: el.dataset.q, ph:"bare", ret:"home"}; sndSurface(); renderQ(); return; }
+  if (el.dataset.q2) { VIEW = {scr:"q", q: el.dataset.q2, ph:"bare", ret:"doubts"}; renderQ(); return; }
+  if (el.dataset.q3) { VIEW = {scr:"q", q: el.dataset.q3, ph:"bare", ret:"dex"}; renderQ(); return; }
+  if (el.dataset.q4) { VIEW = {scr:"q", q: el.dataset.q4, ph:"bare", ret:"bank"}; renderQ(); return; }
+  if (el.dataset.year) { BANK_Y = +el.dataset.year; renderBank(); return; }
+  if (el.dataset.kp) { DEX_OPEN = el.dataset.kp; renderDex(); return; }
+  if (el.dataset.tab) { DEX_TAB = el.dataset.tab; DEX_OPEN = null; renderDex(); return; }
+  if (el.dataset.excell) { const [ey, erow] = el.dataset.excell.split("|"); enterExam(ey, erow); return; }
+  if (el.dataset.exopt) {
+    if (EXREV) return;
+    const [eno, ek] = el.dataset.exopt.split("|"); EXPICK[eno] = ek; renderExamPart(); return;
+  }
+  if (el.dataset.exact) {
+    const ea = el.dataset.exact.split("|");
+    if (ea[0] === "submit") examSubmit();
+    else if (ea[0] === "redo") { EXPICK = {}; EXREV = false; renderExamPart(); }
+    else if (ea[0] === "ref") examRevealRef(ea[1]);
+    return;
+  }
+  const act = el.dataset.act;
+  if (act === "star") {
+    const id = VIEW.q;
+    if (S.starred.includes(id)) S.starred = S.starred.filter(x => x !== id);
+    else S.starred.push(id);
+    logEv("star", {q: id, on: S.starred.includes(id)});
+    save(); renderQ(); return;
+  }
+  if (act === "dexclose") { DEX_OPEN = null; renderDex(); return; }
+  if (act === "quote") { S.quoteOff = (S.quoteOff || 0) + 1; save(); renderHome(); return; }
+  if (act === "bindfile") { if (FH && !FH_OK) reconnectFile(); else bindSaveFile(); return; }
+  if (act === "ghost") { S.ghost = !S.ghost; save(); renderHome(); return; }
+  if (act === "export") { doExport(); return; }
+  if (act === "import") { doImport(); return; }
+  if (act === "ovl-close") { $ovl.style.display = "none"; return; }
+  if (act === "ovl-apply") {
+    try {
+      const obj = JSON.parse(document.getElementById("ovl-ta").value);
+      if (obj && obj.v === 1) { S = obj; save(); $ovl.style.display = "none"; VIEW={scr:"home"}; renderHome(); }
+      else alert("版本不符或内容无效");
+    } catch (e) { alert("JSON 解析失败"); }
+    return;
+  }
+});
+function onGo() {
+  LAST_GO = Date.now();
+  if ($go.classList.contains("hide")) return;
+  logEv("go", {scr: VIEW.scr});
+  ac() && AC.state === "suspended" && AC.resume();
+  if (VIEW.scr === "q") { sndNext(); qGo(); return; }
+  if (VIEW.scr === "chdone") { sndNext(); const sub = (S.cur && S.cur.sub) || "ds"; S.cur = null; save(); VIEW = {scr:"chapters", sub}; renderChapters(sub); return; }
+  if (VIEW.scr === "flow") { flowGo(); return; }
+}
+$go.addEventListener("click", onGo);
+$undo.addEventListener("click", () => { if (VIEW.scr === "flow") { logEv("back", {scr: "flow"}); sndNext(); flowBack(); } });
+document.getElementById("zenbtn").addEventListener("click", () => document.body.classList.toggle("zenon"));
+(function () {                          // 左下角一键清场：两段点击 → POST /lockdown
+  const $p = document.getElementById("panicbtn"), $l = document.getElementById("paniclab");
+  let armed = 0;
+  function lab(t, warn) { $l.textContent = t || ""; $l.classList.toggle("show", !!t); $l.classList.toggle("warn", !!warn); }
+  $p.addEventListener("click", async () => {
+    if (!armed) {
+      armed = Date.now(); $p.classList.add("armed");
+      lab("再点一次 = 关闭本机所有 Claude（含执灯自身）", true);
+      setTimeout(() => { if (armed && Date.now() - armed >= 2400) { armed = 0; $p.classList.remove("armed"); lab(""); } }, 2500);
+      return;
+    }
+    armed = 0; $p.classList.remove("armed"); lab("正在清场…");
+    try {
+      const j = await (await fetch(SYNC_URL + "/lockdown", {method: "POST"})).json();
+      lab("已关闭 " + (j && j.killed >= 0 ? j.killed : "?") + " 个 Claude" + (j && j.self ? " + 执灯" : "") + " · 已彻底斩断");
+    } catch (e) { lab("执灯服务未运行，改用 直连前体检.bat", true); }
+    setTimeout(() => lab(""), 5000);
+  });
+})();
+(function () {                          // 左下角执灯总闸：Claude 介入统一开关（服务端默认熄，执灯重启亦回熄）
+  const $g = document.getElementById("gatebtn"), $t = $g.querySelector("span");
+  let on = false, dead = true, busy = false;
+  function paint() {
+    $g.classList.toggle("on", on && !dead); $g.classList.toggle("dead", dead);
+    $t.textContent = dead ? "执灯丨失联" : (on ? "执灯丨明" : "执灯丨熄");
+  }
+  async function sync(want) {
+    if (busy) return; busy = true;
+    try {
+      const post = want != null;
+      const j = await (await fetch(SYNC_URL + "/gate" + (post ? "?on=" + (want ? 1 : 0) : ""),
+                                   {method: post ? "POST" : "GET"})).json();
+      on = !!j.on; dead = false;
+    } catch (e) { dead = true; }
+    busy = false; paint();
+  }
+  $g.addEventListener("click", () => { logEv("gate", {on: !on}); sync(!on); });
+  paint(); sync(); setInterval(() => sync(), 60000);
+})();
+(function () {                          // 右下角字号旋钮：--fz 乘在自适应基准上；仅本机 localStorage（ky408_fz），不入存档不迁移
+  const KEY = "ky408_fz", $c = document.getElementById("fzctl"), $p = document.getElementById("fzpct");
+  let v = parseFloat(localStorage.getItem(KEY)) || 1;
+  function apply() {
+    v = Math.min(1.9, Math.max(0.8, Math.round(v * 10) / 10));   // 上限 1.6→1.9（章亥线 2026-07：WE 壁纸下用户嫌可调幅度有限，放大一档）
+    document.documentElement.style.setProperty("--fz", v);
+    $p.textContent = Math.round(v * 100) + "%";
+    try { localStorage.setItem(KEY, v); } catch (e) {}
+  }
+  $c.addEventListener("click", (e) => {
+    const k = e.target && e.target.getAttribute("data-fz");
+    if (k === "+") v += 0.1; else if (k === "-") v -= 0.1; else if (k === "0") v = 1; else return;
+    apply();
+  });
+  apply();
+})();
+document.addEventListener("mousemove", (e) => {
+  document.getElementById("zenbtn").classList.toggle("near", e.clientX > window.innerWidth - 90);
+  document.getElementById("panicbtn").classList.toggle("near", e.clientX < 90 && e.clientY > window.innerHeight - 130);
+});
+document.addEventListener("keydown", (e) => {
+  const _tg = e.target;
+  if (_tg && (_tg.tagName === "TEXTAREA" || _tg.tagName === "INPUT")) return;   // 作文/翻译练笔框（及导入框）正常输入，不触发 GO/返回
+  if (document.body.classList.contains("zenon")) { e.preventDefault(); return; }   // 黑幕中只有再点按钮才退出
+  if (e.code === "Space" || e.code === "Enter") { e.preventDefault(); onGo(); }
+  if (e.code === "Backspace" && VIEW.scr === "flow") { e.preventDefault(); logEv("back", {scr: "flow"}); flowBack(); }
+  if (e.code === "Escape" && VIEW.scr !== "home") {
+    if (VIEW.scr === "dex" && DEX_OPEN) { DEX_OPEN = null; renderDex(); return; }
+    VIEW = {scr:"home"}; renderHome();
+  }
+});
+document.addEventListener("visibilitychange", () => {
+  logEv("vis", {s: document.visibilityState});
+  if (document.visibilityState === "hidden") { clearTimeout(FH_TIMER); fileWriteNow(); evFlush(true); }
+  else coachPoll();
+});
+
+/* ============================== selftest ============================== */
+function selftest() {
+  const out = [];
+  const ok = (name, cond) => out.push((cond ? "PASS " : "FAIL ") + name);
+  // 1. data integrity
+  ok("kp ids unique", Object.keys(KP).length === TOTAL_KP);
+  ok("q ids unique", new Set(DATA.questions.map(q=>q.id)).size === DATA.questions.length);
+  ok("q.kps all exist", DATA.questions.every(q => q.kps.every(k => KP[k])));
+  const mcq = DATA.questions.filter(q => q.type !== "big"), bigq = DATA.questions.filter(q => q.type === "big");
+  ok("mc options complete", mcq.every(q => ["A","B","C","D"].every(k => q.options[k])));
+  ok("mc answers valid", mcq.every(q => "ABCD".includes(q.answer)));
+  ok("big parts valid", bigq.every(q => Array.isArray(q.parts) && q.parts.length > 0 && q.parts.every(p => String(p.ans || "").trim())));
+  ok("details ≤ 310 chars", Object.values(KP).every(p => (p.detail||"").length <= 310));
+  // 2. surfacing simulation on scratch state
+  const realS = S;
+  S = freshState();
+  const _surf = sndSurface; sndSurface = function(){};   // mute during sim (headless perf / log spam)
+  SIM = true;
+  let surfaced = 0;
+  const allKps = [];
+  for (const s of DATA.levels.subjects) for (const c of s.chapters)
+    for (const sec of (c.sections||[])) for (const p of sec.points) allKps.push(p);
+  for (const p of allKps) {                              // 正向单遍走完整大纲：每题应在其门槛点恰好浮现一次
+    completePoint(p);
+    surfaced += QUEUE.filter(x => x.t === "qbare").length;
+    QUEUE.length = 0; S.pendingQ = [];
+  }
+  SIM = false;
+  sndSurface = _surf;
+  const validQ = DATA.questions.filter(q => q.kps.length && q.kps.every(k => KP[k]));
+  ok("每题门槛点 ∈ 其考点", validQ.every(q => q.kps.includes(GATE[q.id])));
+  ok("门槛点全出·正向单遍每题恰好浮现一次 (" + surfaced + "/" + validQ.length + ")", surfaced === validQ.length);
+  // 3. quotes
+  ok("quotes valid (≥30, fields ok)", (DATA.quotes || []).length >= 30 &&
+     (DATA.quotes || []).every(q => q.text && q.src && ["ds","co","os","net"].includes(q.subject) && q.ch >= 1));
+  S = realS;
+  QUEUE.length = 0;
+  // 英语一自检（象胥）——独立计数 enOut，绝不并入上方 408 的 10/10（752/752 断言分毫不动）；数据缺席则整段跳过
+  const enOut = [];
+  const enok = (name, cond) => enOut.push((cond ? "PASS " : "FAIL ") + name);
+  if (Object.keys(EXAM).length) {
+    const EXY = Object.keys(EXAM);
+    enok("exam years present", EXY.length >= 1);
+    enok("exam sections complete", EXY.every(y => {
+      const d = EXAM[y];
+      return d && d.cloze && Object.keys(d.cloze.options).length === 20 &&
+        Array.isArray(d.reading) && d.reading.length === 4 && d.reading.every(t => t.questions.length === 5) &&
+        d.part_b && (d.part_b._kind === "named_items" || d.part_b._kind === "paragraph_pool") &&
+        d.part_c && Object.keys(d.part_c.sentences).length === 5;
+    }));
+    enok("exam answers 1-45 & translations 46-50", EXY.every(y => {
+      const a = EXAM[y].answers, t = EXAM[y].translations;
+      for (let i = 1; i <= 45; i++) if (!a[String(i)]) return false;
+      for (let i = 46; i <= 50; i++) if (!t[String(i)]) return false;
+      return true;
+    }));
+    enok("exam dict is map", EXDICT && typeof EXDICT === "object" && !Array.isArray(EXDICT));
+    enok("exam all sections render", (function () {   // 内存渲染冒烟：全年×全题型走一遍，含判分/亮答案路径，永不落屏（版权正文不显示）
+      const sv = VIEW, sp = EXPICK, sr = EXREV; let good = true;
+      try {
+        for (const y of EXY) for (const r of EXAM_ROWS) {
+          VIEW = {scr: "exampart", year: y, row: r.id}; EXPICK = {}; EXREV = false;
+          const d = EXAM[y], key = exKey(y, r.id);
+          const html = r.kind === "cloze" ? exCloze(d, key) : r.kind === "reading" ? exReading(d, r, key)
+            : r.kind === "partb" ? exPartb(d, key) : r.kind === "transc" ? exTransc(d) : exWriting(d, r);
+          if (!html || html.length < 20) good = false;
+          if (EXAM_NOS[r.id]) { EXREV = true; if (!exScore(key)) good = false; }
+        }
+      } catch (e) { good = false; }
+      VIEW = sv; EXPICK = sp; EXREV = sr; return good;
+    })());
+  }
+  // report（408 计数恒为 10/10；英一自检以 +英一N 形式附加，任一失败同样点红）
+  const st = document.getElementById("st");
+  const fails = out.filter(x => x.startsWith("FAIL"));
+  const enFails = enOut.filter(x => x.startsWith("FAIL"));
+  const nf = fails.length + enFails.length;
+  st.textContent = (nf ? "SELFTEST FAIL " + nf + " — " : "SELFTEST PASS " + out.length + "/" + out.length + (enOut.length ? " +英一" + enOut.length : "") + " — ") + out.concat(enOut).join(" | ");
+  st.style.display = "block";
+  st.style.background = nf ? "#3a0a0a" : "#0a2a0a";
+}
+
+/* ============================== global error trap ============================== */
+function showFatal(msg) {
+  const st = document.getElementById("st");
+  if (!st) return;
+  st.textContent = "ERROR: " + msg;
+  st.style.display = "block"; st.style.background = "#3a0a0a";
+}
+window.addEventListener("error", e => showFatal((e.message || e.type) + " @ " + (e.filename || "") + ":" + (e.lineno || "")));
+window.addEventListener("unhandledrejection", e => {
+  const r = e.reason;
+  showFatal((r && r.message ? r.message : String(r)) + " @ " + ((r && r.stack ? r.stack.split("\n")[1] : "") || "promise"));
+});
+
+/* ============================== boot ============================== */
+(async function boot() {
+  const qp = new URLSearchParams(location.search);
+  try {
+    const oldrt = localStorage.getItem("ky408_rt");
+    if (oldrt !== RESET_TOKEN) {
+      localStorage.removeItem(SKEY);
+      localStorage.removeItem("ky408_evq");
+      localStorage.setItem("ky408_rt", RESET_TOKEN);
+      if (oldrt) WIPED = true;   // 真换代（有旧token被清）才算主动清档；全新浏览器首启（无token）不算——那正是要护住真档的场景
+    }
+  } catch (e) {}
+  if (qp.get("reset") === "1") { localStorage.removeItem(SKEY); localStorage.removeItem("ky408_evq"); WIPED = true; }
+  await loadData();
+  loadState();
+  try {
+    // file:// 下 IndexedDB 偶发既不成功也不报错——用超时竞速保证 boot 永不被卡死
+    const tmo = ms => new Promise(r => setTimeout(() => r(undefined), ms));
+    FH = (await Promise.race([idbGet("fh"), tmo(800)])) || null;
+    if (FH && FH.queryPermission)
+      FH_OK = (await Promise.race([FH.queryPermission({mode: "readwrite"}), tmo(800)])) === "granted";
+  } catch (e) { FH = null; }
+  await syncInit();
+  logEv("boot", {});
+  evFlush();
+  coachPoll();
+  if (qp.get("selftest") === "1") {
+    try { selftest(); }
+    catch (e) {
+      const st = document.getElementById("st");
+      st.textContent = "SELFTEST CRASH: " + (e && (e.message + " @ " + (e.stack || "").split("\n")[1]));
+      st.style.display = "block"; st.style.background = "#3a0a0a";
+    }
+  }
+  if (qp.get("view") === "bank") { VIEW = {scr:"bank"}; renderBank(); }
+  else if (qp.get("view") === "exam") { VIEW = {scr:"exam"}; renderExam(); }
+  else if (qp.get("view") === "dex") {
+    const op = qp.get("open");
+    if (op && KP[op]) { DEX_TAB = KP[op].subId; DEX_OPEN = op; }
+    VIEW = {scr:"dex"}; renderDex();
+  }
+  else renderHome();
+})();
+/* 壁纸滚动：WE 无滚轮事件,以拖拽+边缘悬停代之——章亥线 2026-07
+   三件套=①按住拖拽（缓动逼近目标,平滑）②边缘悬停自动滚 ③滚轮原生保留；
+   容器解析通用（文档根 #app 长页 + .dex-show 图鉴弹层,未来新容器亦自动覆盖）。
+   时间基：边缘滚速度按 px/秒（原 11px/帧×60=660），任意帧率恒定；拖拽 rAF 缓动逼近目标
+   （60fps 当量系数 0.35，经 dt 校正跨帧率一致,消低频鼠标事件顿挫）；无位移即停 rAF（不空转）。 */
+(function () {
+  var root = document.scrollingElement || document.documentElement;
+  var EDGE = 64;      // 顶/底感应带(px,如约)
+  var SPEED = 660;    // 边缘匀速滚 px/秒（原 11px/帧×60）
+  var THRESH = 6;     // 进入拖拽的位移阈值(px)
+  var EASE = 0.35;    // 拖拽缓动系数（60fps 当量,dt 校正跨帧率一致）
+  // 拖拽绝不启动的元素：GO/撤销/一切固定钮/链接/输入/作答选项/做题动作——做题点击零误伤
+  var NODRAG = "#go,#undo,#zenbtn,#panicbtn,#gatebtn,#fzctl,#ubtn,#mbtn,#coach,#tintlab,#extimer,#st," +
+               "a,button,textarea,input,select,label,[data-opt],[data-exopt],[data-exact]";
+  // 边缘自动滚不介入的固定层（免与 zen 钮 / tint 标 / GO 冲突）
+  var NOHOVER = "#go,#undo,#zenbtn,#panicbtn,#gatebtn,#fzctl,#ubtn,#mbtn,#coach,#tintlab,#extimer,#st";
+
+  function canScroll(el) {
+    if (!el || el.nodeType !== 1) return false;
+    if (el === root || el === document.body || el === document.documentElement)
+      return root.scrollHeight - root.clientHeight > 2;
+    var oy = getComputedStyle(el).overflowY;
+    return (oy === "auto" || oy === "scroll") && el.scrollHeight - el.clientHeight > 2;
+  }
+  // 自节点上溯最近可竖滚容器，兜底文档根（#app 长页 / 阅读文章都走这条）
+  function scrollerFrom(node) {
+    for (var el = node; el && el !== document.body && el !== document.documentElement; el = el.parentElement)
+      if (canScroll(el)) return el;
+    return canScroll(root) ? root : null;
+  }
+  function clampTo(s, v) { var m = s.scrollHeight - s.clientHeight; return v < 0 ? 0 : (v > m ? m : v); }
+
+  /* ① 按住拖拽——移动 >6px 进入拖拽态，只更新目标值，rAF 缓动逼近（内容随指针走） */
+  var down = false, drag = false, sx = 0, sy = 0, st0 = 0, sEl = null, suppress = false, dTarget = null;
+  document.addEventListener("mousedown", function (e) {
+    if (e.button !== 0) return;
+    var t = e.target;
+    if (t && t.closest && t.closest(NODRAG)) return;        // 交互元素上不启动（作答/按钮/输入）
+    var s = scrollerFrom(t);
+    if (!s) return;                                         // 不可滚就不接管
+    down = true; drag = false; sx = e.clientX; sy = e.clientY; sEl = s; st0 = s.scrollTop; dTarget = null;
+  });
+  document.addEventListener("mousemove", function (e) {
+    if (!down) return;
+    var dy = e.clientY - sy;
+    if (!drag) {
+      if (Math.abs(dy) < THRESH && Math.abs(e.clientX - sx) < THRESH) return;
+      drag = true;
+      document.body.style.userSelect = "none";
+      if (window.getSelection) { try { window.getSelection().removeAllRanges(); } catch (x) {} }
+    }
+    dTarget = clampTo(sEl, st0 - dy); kick();               // 只更新目标，rAF 缓动逼近（消低频事件顿挫）
+    e.preventDefault();
+  }, {passive: false});
+  function endDrag() {
+    if (drag) { suppress = true; setTimeout(function () { suppress = false; }, 0); }   // 拖过则吞掉这次 click
+    down = false; drag = false; document.body.style.userSelect = "";                   // sEl/dTarget 留给 loop 缓动收尾
+  }
+  document.addEventListener("mouseup", endDrag);
+  // 抑制拖拽尾随的 click——挂 window 捕获相，抢在游戏 click 委托（含埋点）之前截停，做题/导航皆不误触
+  window.addEventListener("click", function (e) {
+    if (suppress) { suppress = false; e.stopPropagation(); e.preventDefault(); }
+  }, true);
+
+  /* ② 边缘悬停自动滚——指针入顶/底 64px 带且可滚时 rAF 时间基匀速滚，离带/到头即停 */
+  var mx = 0, my = 0, raf = 0, last = 0;
+  function edgeStep(dt) {
+    if (down) return false;                                 // 拖拽中不自动滚
+    var top = document.elementFromPoint(mx, my);
+    if (top && top.closest && top.closest(NOHOVER)) return false;   // 固定钮/留言板上不滚
+    var s = scrollerFrom(top);
+    if (!s) return false;
+    var t, b;
+    if (s === root) { t = 0; b = window.innerHeight; }
+    else { var r = s.getBoundingClientRect(); t = r.top; b = r.bottom; }
+    var step = SPEED * dt, max = s.scrollHeight - s.clientHeight;   // 在带内且尚可滚即续帧（dt=0 首帧 step=0 亦续）
+    if (my - t < EDGE && s.scrollTop > 0) { s.scrollTop = Math.max(0, s.scrollTop - step); return true; }
+    if (b - my < EDGE && s.scrollTop < max) { s.scrollTop = Math.min(max, s.scrollTop + step); return true; }
+    return false;
+  }
+  /* 统一 rAF 循环：拖拽缓动(dTarget) + 边缘匀速(edgeStep·dt)；两者皆静即停（不空转） */
+  function frame(ts) {
+    var dt = last ? (ts - last) / 1000 : 0; last = ts; if (dt > 0.1) dt = 0.1;
+    var alive = false;
+    if (dTarget !== null && sEl) {
+      var d = dTarget - sEl.scrollTop;
+      if (Math.abs(d) < 0.5) { sEl.scrollTop = dTarget; dTarget = null; }
+      else { sEl.scrollTop += d * (1 - Math.pow(1 - EASE, dt * 60)); alive = true; }
+    }
+    if (edgeStep(dt)) alive = true;
+    if (alive) raf = requestAnimationFrame(frame); else { raf = 0; last = 0; }
+  }
+  function kick() { if (!raf) { last = 0; raf = requestAnimationFrame(frame); } }
+  document.addEventListener("mousemove", function (e) {
+    mx = e.clientX; my = e.clientY; kick();
+  });
+
+  /* ③ 滚轮：不拦截，浏览器原生逐容器滚动照旧生效（WE 无此事件，桌面/预览仍可用） */
+})();
+</script>
+<!--KY-SYNC-BEGIN core+adapter_408.js @04683c570c 由 tools/app/inject_shells.py 注入；正本在 tools/app/，改正本后重跑注入器再跑 build 管线-->
+<script>
+/* ============================================================================
+   灯下 · 云档同步核心 sync_core.js（星槎 2026.7，PROGRESS AI 节）
+   ----------------------------------------------------------------------------
+   正本在 tools/app/sync_core.js；三壳（game/universe/math）各嵌一份完全相同的
+   拷贝（KY-SYNC-BEGIN/END 标记内，由 tools/app/inject_shells.py 注入与更新，
+   build_app.py 校验三份与正本不漂移）。改这里 → 重跑 inject_shells.py。
+
+   设计（PROGRESS AI 定案③）：
+   · 后端 = GitHub 私仓（默认 TricGrizen/ky-sync）Contents API，一店一文件
+     s/<localStorage键>.json，信封 {v,t,dev,data}。
+   · 合并 = 逐条目取新/并集/取早（按店各配），绝不整档互斥覆盖；
+     starred 走三方合并（shadow 基线）支持摘星不复活；PUT 带 sha 乐观锁。
+   · fail-closed：无 token / 无网 / 接口错 = 静默跳过，纯本地行为分毫不变。
+     铁律8复核：浏览器侧出网物理过 TUN/系统代理，页面 JS 无绕行面。
+   · SIM/selftest/MEMONLY/SEEDED/coop-join 由壳适配器 blocked() 一票禁同步。
+   ============================================================================ */
+window.KySync=(function(){
+"use strict";
+var CFG_KEY="ky_sync_cfg", SHADOW_PRE="ky_sshadow_", API="https://api.github.com";
+var DEF_REPO="TricGrizen/ky-sync";
+
+/* ---------------- 小工具 ---------------- */
+function nkeys(o){return o?Object.keys(o).length:0;}
+function stab(x){ /* 键序无关的稳定序列化（只用于比较，不用于上载） */
+  if(x===null||typeof x!=="object")return JSON.stringify(x);
+  if(Array.isArray(x))return "["+x.map(stab).join(",")+"]";
+  var ks=Object.keys(x).sort(),i,s="{";
+  for(i=0;i<ks.length;i++){if(i)s+=",";s+=JSON.stringify(ks[i])+":"+stab(x[ks[i]]);}
+  return s+"}";
+}
+function clone(x){return x==null?x:JSON.parse(JSON.stringify(x));}
+function b64e(s){return btoa(unescape(encodeURIComponent(s)));}
+function b64d(b){return decodeURIComponent(escape(atob(String(b).replace(/\s/g,""))));}
+function uniqPrim(a){var s={},o=[],i;for(i=0;i<a.length;i++){var k=typeof a[i]+"·"+a[i];if(!s[k]){s[k]=1;o.push(a[i]);}}return o;}
+function uniqJson(a){var s={},o=[],i;for(i=0;i<a.length;i++){var k=stab(a[i]);if(!s[k]){s[k]=1;o.push(a[i]);}}return o;}
+function mArr(l,r,capN){ /* 追加型日志并集：内容去重 → 按 t 升序 → 截尾限额 */
+  var m=uniqJson((l||[]).concat(r||[]));
+  m.sort(function(a,b){return (a&&a.t||0)-(b&&b.t||0);});
+  return (capN&&m.length>capN)?m.slice(m.length-capN):m;
+}
+function minDate(a,b){if(a==null)return b;if(b==null)return a;return String(a)<=String(b)?a:b;}
+function pick(l,r,tl,tr){ /* 决定性择新：时间→内容字典序（防两端平票互推打乒乓） */
+  if(tl>tr)return l; if(tr>tl)return r;
+  return stab(l)<=stab(r)?l:r;
+}
+
+/* ---------------- 合并律（一店一函数；PROGRESS AI ③） ---------------- */
+function m408(l,r,ctx){
+  var lt=l.t||0, rt=r.t||0;
+  var nw=pick(l,r,lt,rt), od=(nw===l)?r:l;
+  var o={}; Object.keys(od).forEach(function(k){o[k]=od[k];});
+  Object.keys(nw).forEach(function(k){o[k]=nw[k];});           /* 未列举字段：新档胜（前向兼容） */
+  o=clone(o); o.v=1; o.t=Math.max(lt,rt);
+  o.firstDay=minDate(l.firstDay,r.firstDay)||o.firstDay;
+  o.done={}; o.seen={};
+  [l,r].forEach(function(s){var m=s.done||{},k;for(k in m)o.done[k]=minDate(o.done[k],m[k]);});   /* 首过取早 */
+  [l,r].forEach(function(s){var m=s.seen||{},k;for(k in m)o.seen[k]=minDate(o.seen[k],m[k]);});   /* 首见取早 */
+  /* starred 三方合并（base=上次同步基线）：摘星是真删除，不靠并集复活 */
+  var base=(ctx&&ctx.base&&ctx.base.starred)||null;
+  if(base){
+    var B={},L={},R={},i;
+    base.forEach(function(q){B[q]=1;});(l.starred||[]).forEach(function(q){L[q]=1;});(r.starred||[]).forEach(function(q){R[q]=1;});
+    var keep=[];
+    uniqPrim(base.concat(l.starred||[],r.starred||[])).forEach(function(q){
+      var inB=B[q],inL=L[q],inR=R[q];
+      if(inB){ if(inL&&inR)keep.push(q); /* 双方仍在=留；任一方删=删 */ }
+      else if(inL||inR)keep.push(q);     /* 任一方新增=加 */
+    });
+    o.starred=keep.sort();
+  }else o.starred=uniqPrim((l.starred||[]).concat(r.starred||[])).sort();
+  /* 集合一律排序：合并结果与参数顺序无关（决定性，防两端互推乒乓） */
+  o.wrongs=uniqPrim((l.wrongs||[]).concat(r.wrongs||[])).sort();  /* ✗ 历史：只进不出 */
+  o.heat={};
+  [l,r].forEach(function(s){var m=s.heat||{},d;for(d in m){var e=o.heat[d]=o.heat[d]||{k:0,q:0};
+    e.k=Math.max(e.k,m[d]&&m[d].k||0); e.q=Math.max(e.q,m[d]&&m[d].q||0);}});
+  o.time={subj:{},ch:{}};
+  [l,r].forEach(function(s){var tm=s.time||{};["subj","ch"].forEach(function(g){var m=tm[g]||{},k;
+    for(k in m)o.time[g][k]=Math.max(o.time[g][k]||0,m[k]||0);});});
+  o.exam={};                                                    /* 逐卷：进度多者（字节数）胜 */
+  (function(){var k,a=l.exam||{},b=r.exam||{},all={},x;for(k in a)all[k]=1;for(k in b)all[k]=1;
+    for(k in all){var va=a[k],vb=b[k];
+      if(va==null)x=vb; else if(vb==null)x=va;
+      else{var la=stab(va).length,lb=stab(vb).length;
+        x=(la>lb)?va:(lb>la)?vb:pick(va,vb,lt,rt);}
+      o.exam[k]=x;}})();
+  o.tray=[];o.trayT={};o.pendingQ=[];                           /* loadState 本就清空的瞬态 */
+  return o;
+}
+function wuCaseT(S,id){var c=(S.cases||{})[id],L=(S.laws||{})[id];
+  var t=(L&&L.ts)||0;
+  if(c&&c.hits&&c.hits.length)t=Math.max(t,c.hits[c.hits.length-1].t||0);
+  if(!t&&c&&(c.seen||c.dis))t=1;
+  return t;}
+function mWugeng(l,r){
+  var o={cases:{},laws:{},meta:{}},ids={},id;
+  [l.cases,r.cases,l.laws,r.laws].forEach(function(m){for(var k in (m||{}))ids[k]=1;});
+  for(id in ids){
+    var tl=wuCaseT(l,id),tr=wuCaseT(r,id),w,lo;
+    if(tl!==tr)w=(tl>tr)?l:r;
+    else{ /* 平票走内容字典序（决定性，防两端互推乒乓） */
+      var cw=stab([(l.cases||{})[id],(l.laws||{})[id]]),cr=stab([(r.cases||{})[id],(r.laws||{})[id]]);
+      w=(cw<=cr)?l:r;
+    }
+    lo=(w===l)?r:l;
+    if((w.cases||{})[id])o.cases[id]=clone(w.cases[id]);
+    if((w.laws||{})[id])o.laws[id]=clone(w.laws[id]);
+    if(!o.cases[id]&&(lo.cases||{})[id])o.cases[id]=clone(lo.cases[id]);
+    if(!o.laws[id]&&(lo.laws||{})[id])o.laws[id]=clone(lo.laws[id]);
+  }
+  var lm=l.meta||{},rm=r.meta||{};
+  var nm=pick(lm,rm,lm.last||0,rm.last||0),om=(nm===lm)?rm:lm;
+  Object.keys(om).forEach(function(k){o.meta[k]=om[k];});
+  Object.keys(nm).forEach(function(k){o.meta[k]=nm[k];});
+  o.meta=clone(o.meta);
+  o.meta.last=Math.max(lm.last||0,rm.last||0);
+  ["dawn","rest","ob"].forEach(function(k){o.meta[k]=Math.max(lm[k]||0,rm[k]||0);});
+  (function(){var che={},k,a=lm.che||{},b=rm.che||{};
+    for(k in a)che[k]=a[k]; for(k in b)che[k]=(typeof b[k]==="number"&&typeof che[k]==="number")?Math.max(che[k],b[k]):(k in che?(nm===rm?b[k]:che[k]):b[k]);
+    o.meta.che=che;})();
+  return o;
+}
+function mathCaseT(S,id){var c=(S.cases||{})[id];if(!c)return 0;var t=0;
+  (c.hits||[]).forEach(function(h){if(h&&h.t>t)t=h.t;});
+  return t||((c.seen||c.due)?1:0);}
+function mMath(l,r){
+  var o={cases:{},meta:{}},ids={},id;
+  [l.cases,r.cases].forEach(function(m){for(var k in (m||{}))ids[k]=1;});
+  for(id in ids){
+    var a=(l.cases||{})[id],b=(r.cases||{})[id];
+    if(!a){o.cases[id]=clone(b);continue;} if(!b){o.cases[id]=clone(a);continue;}
+    var w=pick(a,b,mathCaseT(l,id),mathCaseT(r,id));
+    o.cases[id]=clone(w);
+    o.cases[id].star=!!(w.star);                       /* star 随胜方（同段活动内的手势） */
+  }
+  var lm=l.meta||{},rm=r.meta||{};
+  var nm=pick(lm,rm,lm.last||0,rm.last||0),om=(nm===lm)?rm:lm;
+  Object.keys(om).forEach(function(k){o.meta[k]=om[k];});
+  Object.keys(nm).forEach(function(k){o.meta[k]=nm[k];});
+  o.meta=clone(o.meta);
+  o.meta.last=Math.max(lm.last||0,rm.last||0); o.meta.ver=1;
+  return o;
+}
+function mWB(l,r){var o={},ids={},k;
+  [l,r].forEach(function(m){for(var x in (m||{}))ids[x]=1;});
+  for(k in ids)o[k]=mArr((l||{})[k],(r||{})[k]);
+  return o;}
+
+/* 店册：键 → {merge, virgin, sig(比较签名·剔除易变字段), shadowPick(三方基线)} */
+var STORES={
+  "ky408_v1":{
+    merge:m408,
+    virgin:function(s){return !s||(!nkeys(s.done)&&!nkeys(s.seen)&&!nkeys(s.heat)&&!nkeys(s.time&&s.time.subj));},
+    sig:function(s){if(s==null)return "null";var c=clone(s);delete c.t;c.tray=[];c.trayT={};c.pendingQ=[];delete c.cur;return stab(c);},
+    shadowPick:function(s){return {starred:(s&&s.starred||[]).slice()};}
+  },
+  "ky_wugeng_v5":{
+    merge:mWugeng,
+    virgin:function(s){return !s||(!nkeys(s.cases)&&!nkeys(s.laws));},
+    sig:function(s){if(s==null)return "null";var c=clone(s);if(c.meta)delete c.meta.last;return stab(c);}
+  },
+  "ky_mislog_v1":{merge:function(l,r){return mArr(l,r,400);},virgin:function(a){return !a||!a.length;},sig:stab},
+  "ky_gleans_v1":{merge:function(l,r){return mArr(l,r,200);},virgin:function(a){return !a||!a.length;},sig:stab},
+  "ky_math_v1":{
+    merge:mMath,
+    virgin:function(s){return !s||!nkeys(s.cases);},
+    sig:function(s){if(s==null)return "null";var c=clone(s);if(c.meta)delete c.meta.last;return stab(c);}
+  },
+  "ky_math_wrong_v1":{merge:mWB,virgin:function(o){return !o||!nkeys(o);},sig:stab}
+};
+
+/* ---------------- 配置 ---------------- */
+var cfg=null;
+function loadCfg(){try{cfg=JSON.parse(localStorage.getItem(CFG_KEY)||"null");}catch(e){cfg=null;}
+  if(!cfg||typeof cfg!=="object")cfg=null; return cfg;}
+function saveCfg(c){cfg=c;try{localStorage.setItem(CFG_KEY,JSON.stringify(c));}catch(e){}}
+function enabled(){return !!(cfg&&cfg.on&&cfg.tok&&cfg.repo);}
+
+/* ---------------- GitHub Contents 传输 ---------------- */
+function gh(method,path,body){
+  var h={"Authorization":"Bearer "+cfg.tok,"Accept":"application/vnd.github+json","X-GitHub-Api-Version":"2022-11-28"};
+  var o={method:method,headers:h};
+  if(body){h["Content-Type"]="application/json";o.body=JSON.stringify(body);}
+  try{if(window.AbortSignal&&AbortSignal.timeout)o.signal=AbortSignal.timeout(20000);}catch(e){}
+  return fetch(API+path,o).then(function(r){
+    if(r.status===404)return {s:404,j:null};
+    return r.json().catch(function(){return null;}).then(function(j){return {s:r.status,j:j};});
+  });
+}
+function fpath(key){return "/repos/"+cfg.repo+"/contents/s/"+encodeURIComponent(key)+".json";}
+function pull(key){
+  return gh("GET",fpath(key)+"?ref="+(cfg.branch||"main")).then(function(r){
+    if(r.s===404)return {sha:null,env:null};
+    if(r.s!==200||!r.j||r.j.content==null)throw new Error("拉取失败 HTTP "+r.s);
+    var env=null;try{env=JSON.parse(b64d(r.j.content));}catch(e){}
+    return {sha:r.j.sha,env:env};
+  });
+}
+function push(key,env,sha){
+  var body={message:"sync "+key+" @"+(cfg.dev||"dev"),content:b64e(JSON.stringify(env)),branch:cfg.branch||"main"};
+  if(sha)body.sha=sha;
+  return gh("PUT",fpath(key),body).then(function(r){
+    if(r.s===200||r.s===201)return true;
+    if(r.s===409||r.s===422)return "conflict";
+    throw new Error("上推失败 HTTP "+r.s);
+  });
+}
+
+/* ---------------- 同步引擎 ---------------- */
+var A=null, busy=false, lastOkT=0, lastMsg="未配置", savedT=0, pollT=0;
+function setMsg(m){lastMsg=m;renderStatus();}
+function hhmm(t){var d=new Date(t);return ("0"+d.getHours()).slice(-2)+":"+("0"+d.getMinutes()).slice(-2);}
+function shadowGet(key){try{return JSON.parse(localStorage.getItem(SHADOW_PRE+key)||"null");}catch(e){return null;}}
+function shadowSet(key,v){try{localStorage.setItem(SHADOW_PRE+key,JSON.stringify(v));}catch(e){}}
+
+function syncStore(st,force){ /* force="pushAll"|"pullAll"|null */
+  var lib=STORES[st.key]; if(!lib)return Promise.resolve({key:st.key,what:"unknown"});
+  return pull(st.key).then(function(p){
+    var remote=(p.env&&p.env.data!==undefined)?p.env.data:null;
+    var local=st.get();
+    var merged, what="same";
+    if(force==="pushAll")merged=local;
+    else if(force==="pullAll")merged=(remote!=null)?remote:local;
+    else if(local==null&&remote==null)return {key:st.key,what:"empty"};
+    else if(local==null)merged=remote;
+    else if(remote==null)merged=local;
+    else merged=lib.merge(local,remote,{base:shadowGet(st.key)});
+    if(merged==null)return {key:st.key,what:"empty"};
+    var sigM=lib.sig(merged);
+    if(local==null||sigM!==lib.sig(local)){st.set(clone(merged));what="pulled";}
+    var needPush = (remote==null) ? !(lib.virgin(merged)&&!force)
+                                  : sigM!==lib.sig(remote);
+    if(force==="pullAll")needPush=false;
+    if(needPush){
+      var env={v:1,t:Date.now(),dev:cfg.dev||"dev",data:merged};
+      var attempt=function(n,sha){
+        return push(st.key,env,sha).then(function(ok){
+          if(ok===true)return;
+          if(n>=2)throw new Error("上推冲突未决");
+          return pull(st.key).then(function(p2){
+            var r2=(p2.env&&p2.env.data!==undefined)?p2.env.data:null;
+            if(r2!=null)env.data=lib.merge(env.data,r2,{base:shadowGet(st.key)});
+            return attempt(n+1,p2.sha);
+          });
+        });
+      };
+      return attempt(0,p.sha).then(function(){
+        if(lib.shadowPick)shadowSet(st.key,lib.shadowPick(env.data));
+        return {key:st.key,what:what==="pulled"?"pulled":"pushed"};
+      });
+    }
+    if(lib.shadowPick)shadowSet(st.key,lib.shadowPick(merged));
+    return {key:st.key,what:what};
+  });
+}
+
+function syncNow(manual,force){
+  if(!A)return Promise.resolve();
+  if(A.blocked&&A.blocked()){if(manual)setMsg("本页免写模式，不同步");return Promise.resolve();}
+  loadCfg();
+  if(!enabled()){if(manual)setMsg("未配置 token");renderStatus();return Promise.resolve();}
+  if(busy){if(manual)setMsg("同步中…");return Promise.resolve();}
+  busy=true;setMsg("同步中…");
+  var changed=[],pushed=0;
+  var chain=Promise.resolve();
+  A.stores.forEach(function(st){
+    chain=chain.then(function(){return syncStore(st,force);}).then(function(r){
+      if(r&&r.what==="pulled")changed.push(r.key);
+      if(r&&r.what==="pushed")pushed++;
+    });
+  });
+  return chain.then(function(){
+    busy=false;lastOkT=Date.now();
+    setMsg("✓ "+hhmm(lastOkT)+(changed.length?" 收"+changed.length:"")+(pushed?" 发"+pushed:""));
+    if(changed.length&&A.applied){try{A.applied(changed);}catch(e){}}
+  }).catch(function(e){
+    busy=false;setMsg("✗ "+String(e&&e.message||"网络不通").slice(0,42));
+  });
+}
+
+/* 壳 save() 后的防抖上推 */
+function saved(){
+  if(!A||!enabled()||(A.blocked&&A.blocked()))return;
+  clearTimeout(savedT);
+  savedT=setTimeout(function(){syncNow(false);},10000);
+}
+
+/* ---------------- 面板 UI（克制灰阶 · 黑底） ---------------- */
+var UI_CSS=[
+"#kysync-btn{position:fixed;z-index:9990;right:10px;bottom:10px;width:30px;height:30px;line-height:30px;text-align:center;",
+" color:#3c3c44;font-size:14px;cursor:pointer;user-select:none;-webkit-user-select:none;border-radius:50%;transition:color .25s;}",
+"#kysync-btn:hover{color:#8a8a94;}",
+"#kysync-btn.kys-on{color:#5a5240;}#kysync-btn.kys-on:hover{color:#a8965e;}",
+"#kysync-btn.kys-err{color:#6e3a3a;}",
+"#kysync-panel{position:fixed;z-index:9991;right:12px;bottom:46px;width:19.5rem;background:#0a0a0c;border:1px solid #232329;",
+" border-radius:6px;padding:.9rem .95rem;font-size:.72rem;line-height:1.6;color:#9a9aa2;display:none;",
+" box-shadow:0 8px 30px rgba(0,0,0,.55);text-align:left;}",
+"#kysync-panel.show{display:block;}",
+"#kysync-panel h4{margin:0 0 .5rem;font-size:.74rem;color:#c8c8ce;font-weight:600;letter-spacing:.08em;}",
+"#kysync-panel input[type=text],#kysync-panel input[type=password]{width:100%;box-sizing:border-box;background:#101014;",
+" border:1px solid #26262c;border-radius:3px;color:#c9c9cf;padding:.3rem .45rem;font-size:.72rem;margin:.15rem 0 .45rem;outline:none;}",
+"#kysync-panel input:focus{border-color:#3a3a42;}",
+"#kysync-panel label{color:#77777f;display:block;}",
+"#kysync-row{display:flex;gap:.45rem;align-items:center;margin:.3rem 0 .5rem;}",
+"#kysync-panel button{background:#131317;border:1px solid #2a2a31;color:#a9a9b1;border-radius:3px;",
+" padding:.28rem .6rem;font-size:.7rem;cursor:pointer;}",
+"#kysync-panel button:hover{border-color:#4a4a54;color:#d4d4da;}",
+"#kysync-panel button.kys-gold{color:#b09a5e;border-color:#4a4232;}",
+"#kysync-st{color:#6e6e76;margin-top:.45rem;min-height:1.1em;}",
+"#kysync-hint{color:#55555c;font-size:.64rem;margin-top:.5rem;line-height:1.55;}",
+"#kysync-more{margin-top:.4rem;}",
+"#kysync-io{width:100%;box-sizing:border-box;height:7rem;background:#0d0d10;border:1px solid #26262c;color:#b9b9bf;",
+" font-size:.62rem;margin-top:.4rem;display:none;}",
+"#kysync-io.show{display:block;}",
+"@media (max-width:520px){#kysync-panel{width:calc(100vw - 40px);right:8px;}}"
+].join("\n");
+
+function el(tag,attrs,html){var e=document.createElement(tag);if(attrs)Object.keys(attrs).forEach(function(k){e.setAttribute(k,attrs[k]);});if(html!=null)e.innerHTML=html;return e;}
+var $btn=null,$panel=null,$st=null,$stBtn=null;
+
+function renderStatus(){
+  if($st)$st.textContent=lastMsg;
+  if($btn){
+    $btn.classList.toggle("kys-on",enabled());
+    $btn.classList.toggle("kys-err",/^✗/.test(lastMsg));
+    $btn.title="云档同步 · "+lastMsg;
+  }
+}
+function buildUI(){
+  if($btn||!document.body)return;
+  var style=document.createElement("style");style.textContent=UI_CSS;document.head.appendChild(style);
+  $btn=el("div",{id:"kysync-btn"},"⇅");
+  $panel=el("div",{id:"kysync-panel"});
+  $panel.appendChild(el("h4",null,"云档同步"));
+  var tok=el("input",{type:"password",placeholder:"GitHub fine-grained token（只授 ky-sync 仓）",autocomplete:"off"});
+  var dev=el("input",{type:"text",placeholder:"本机名（如 PC壁纸 / 手机）",autocomplete:"off"});
+  var repo=el("input",{type:"text",placeholder:"仓库（owner/repo）",autocomplete:"off"});
+  var lab1=el("label",null,"token");var lab2=el("label",null,"设备名");var lab3=el("label",null,"仓库");
+  var row=el("div",{id:"kysync-row"});
+  var onCk=el("input",{type:"checkbox",id:"kysync-on"});
+  var onLab=el("label",{for:"kysync-on",style:"display:inline;color:#9a9aa2;cursor:pointer;"},"开启自动同步");
+  row.appendChild(onCk);row.appendChild(onLab);
+  var bSave=el("button",{"class":"kys-gold"},"保存并同步");
+  var bNow=el("button",null,"立即同步");
+  var more=el("div",{id:"kysync-more"});
+  var bExp=el("button",null,"导出");var bImp=el("button",null,"导入");
+  var bUp=el("button",null,"本机覆盖云端");var bDown=el("button",null,"云端覆盖本机");
+  more.appendChild(bExp);more.appendChild(document.createTextNode(" "));more.appendChild(bImp);
+  more.appendChild(document.createTextNode(" "));more.appendChild(bUp);more.appendChild(document.createTextNode(" "));more.appendChild(bDown);
+  var io=el("textarea",{id:"kysync-io",placeholder:"存档 JSON（导出结果 / 粘贴后点导入）"});
+  $st=el("div",{id:"kysync-st"},"");
+  var hint=el("div",{id:"kysync-hint"},
+    "token 创建：github.com → Settings → Developer settings → Fine-grained tokens，Repository access 只选 ky-sync，Permissions 只给 Contents Read&write。同一 token 各设备各贴一次。");
+  $panel.appendChild(lab1);$panel.appendChild(tok);
+  $panel.appendChild(lab2);$panel.appendChild(dev);
+  $panel.appendChild(lab3);$panel.appendChild(repo);
+  $panel.appendChild(row);
+  $panel.appendChild(bSave);$panel.appendChild(document.createTextNode(" "));$panel.appendChild(bNow);
+  $panel.appendChild(more);$panel.appendChild(io);$panel.appendChild($st);$panel.appendChild(hint);
+  document.body.appendChild($btn);document.body.appendChild($panel);
+  ["keydown","keyup","keypress"].forEach(function(t){$panel.addEventListener(t,function(e){e.stopPropagation();});});
+  function fill(){loadCfg();var c=cfg||{};tok.value=c.tok||"";dev.value=c.dev||"";repo.value=c.repo||DEF_REPO;onCk.checked=!!c.on;}
+  $btn.addEventListener("click",function(){fill();$panel.classList.toggle("show");renderStatus();});
+  document.addEventListener("pointerdown",function(e){
+    if($panel.classList.contains("show")&&!e.target.closest("#kysync-panel,#kysync-btn"))$panel.classList.remove("show");
+  },true);
+  function grab(on){saveCfg({tok:tok.value.trim(),dev:dev.value.trim()||"设备",repo:repo.value.trim()||DEF_REPO,branch:"main",on:!!on});}
+  bSave.addEventListener("click",function(){grab(true);onCk.checked=true;setMsg("已保存");syncNow(true);});
+  bNow.addEventListener("click",function(){grab(onCk.checked);syncNow(true);});
+  onCk.addEventListener("change",function(){grab(onCk.checked);setMsg(onCk.checked?"已开启":"已关闭");});
+  bExp.addEventListener("click",function(){
+    var out={_ky:"灯下存档",t:Date.now(),stores:{}};
+    (A?A.stores:[]).forEach(function(st){out.stores[st.key]=st.get();});
+    io.value=JSON.stringify(out);io.classList.add("show");io.select();
+    setMsg("已导出本页各店，全选复制即可");
+  });
+  bImp.addEventListener("click",function(){
+    if(!io.classList.contains("show")){io.classList.add("show");setMsg("粘贴导出 JSON 后再点导入");return;}
+    try{
+      var inp=JSON.parse(io.value);var n=0;
+      (A?A.stores:[]).forEach(function(st){
+        var lib=STORES[st.key];if(!lib||!inp.stores||inp.stores[st.key]==null)return;
+        var cur=st.get(),nv=(cur==null)?inp.stores[st.key]:lib.merge(cur,inp.stores[st.key],{base:shadowGet(st.key)});
+        st.set(clone(nv));n++;
+      });
+      if(A&&A.applied)try{A.applied(["import"]);}catch(e){}
+      setMsg("已按合并律导入 "+n+" 店");saved();
+    }catch(e){setMsg("✗ 导入 JSON 不合法");}
+  });
+  bUp.addEventListener("click",function(){
+    if(!confirm("以本机当前档覆盖云端（跳过合并）？"))return;
+    grab(onCk.checked);syncNow(true,"pushAll");
+  });
+  bDown.addEventListener("click",function(){
+    if(!confirm("以云端档覆盖本机（跳过合并，本机未上推的进度将丢失）？"))return;
+    grab(onCk.checked);syncNow(true,"pullAll");
+  });
+  renderStatus();
+}
+
+/* ---------------- 触屏与窄屏件（PROGRESS AI ⑤） ---------------- */
+function mobilePatch(opt){
+  opt=opt||{};
+  try{ /* 窄屏视口钉 500：ip13pm 视口 428 < 布局下限 480-500，整体等比缩放 */
+    var w=Math.min(screen.width||9999,screen.height||9999);
+    if(!opt.noClamp&&w&&w<500){
+      var m=document.querySelector("meta[name=viewport]");
+      if(!m){m=document.createElement("meta");m.setAttribute("name","viewport");document.head.appendChild(m);}
+      m.setAttribute("content","width=500, viewport-fit=cover");
+    }
+  }catch(e){}
+  if(!("ontouchstart" in window))return;
+  var st=document.createElement("style");
+  st.textContent="body{touch-action:manipulation;}"
+    +(opt.calloutSel?opt.calloutSel+"{-webkit-touch-callout:none;}":"")                    /* 只禁系统长按菜单（保留选区能力） */
+    +(opt.noSelectSel?opt.noSelectSel+"{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;}":"");
+  document.head.appendChild(st);
+  /* 双 tap → 合成 dblclick（iOS Safari 触屏不产原生 dblclick；≤330ms/≤30px） */
+  var lt=0,lx=0,ly=0;
+  document.addEventListener("touchend",function(e){
+    if(e.touches&&e.touches.length)return;
+    var t=e.changedTouches&&e.changedTouches[0];if(!t)return;
+    if(e.target&&e.target.closest&&e.target.closest("input,textarea,select,#kysync-panel"))return;
+    var n=Date.now();
+    var db=(n-lt)<330&&Math.hypot(t.clientX-lx,t.clientY-ly)<30;
+    lt=db?0:n;lx=t.clientX;ly=t.clientY;
+    if(!db)return;
+    if(opt.wordSelect)selectWordAt(t.clientX,t.clientY);
+    var tgt=document.elementFromPoint(t.clientX,t.clientY)||document.body;
+    var ev;
+    try{ev=new MouseEvent("dblclick",{bubbles:true,cancelable:true,view:window,clientX:t.clientX,clientY:t.clientY});}
+    catch(err){ev=document.createEvent("MouseEvents");ev.initMouseEvent("dblclick",true,true,window,2,0,0,t.clientX,t.clientY,false,false,false,false,0,null);}
+    tgt.dispatchEvent(ev);
+  },{passive:true});
+  function selectWordAt(x,y){ /* 给「读选区」型双击处理器铺路：程序化选中所点单词 */
+    try{
+      var r=document.caretRangeFromPoint?document.caretRangeFromPoint(x,y):null;
+      if(!r||r.startContainer.nodeType!==3)return;
+      var node=r.startContainer,s=node.textContent,a=r.startOffset,b=a;
+      while(a>0&&/[A-Za-z'\-]/.test(s.charAt(a-1)))a--;
+      while(b<s.length&&/[A-Za-z'\-]/.test(s.charAt(b)))b++;
+      if(b<=a)return;
+      var rng=document.createRange();rng.setStart(node,a);rng.setEnd(node,b);
+      var sel=window.getSelection();sel.removeAllRanges();sel.addRange(rng);
+    }catch(e){}
+  }
+}
+
+/* ---------------- 装配 ---------------- */
+function mount(adapter){
+  A=adapter;loadCfg();
+  mobilePatch(A.mobile||{});
+  var tries=0;
+  (function waitReady(){
+    var ok=true;
+    try{ok=!A.ready||A.ready();}catch(e){ok=false;}
+    if(!ok){if(++tries<120)return setTimeout(waitReady,500);}
+    buildUI();renderStatus();
+    if(A.blocked&&A.blocked())return;         /* 免写模式：连轮询都不挂 */
+    setTimeout(function(){syncNow(false,A.firstForce||null);},1500);  /* ?reset=1 主动清档：firstForce="pushAll" 推平云端（沿守渡 WIPED 语义） */
+    pollT=setInterval(function(){syncNow(false);},600000);
+    document.addEventListener("visibilitychange",function(){
+      if(!document.hidden&&Date.now()-lastOkT>60000)syncNow(false);
+    });
+  })();
+}
+function lsStores(keys){
+  return keys.map(function(k){return {
+    key:k,
+    get:function(){try{return JSON.parse(localStorage.getItem(k)||"null");}catch(e){return null;}},
+    set:function(d){try{localStorage.setItem(k,JSON.stringify(d));}catch(e){}}
+  };});
+}
+return {mount:mount,saved:saved,syncNow:syncNow,lsStores:lsStores,
+        _m:{m408:m408,mWugeng:mWugeng,mMath:mMath,mWB:mWB,mArr:mArr,STORES:STORES,stab:stab},
+        cfg:loadCfg,enabled:enabled};
+})();
+/* 408 壳适配器（game.html 专用；与 sync_core.js 同块注入，正本在 tools/app/）。
+   店=ky408_v1（内存态 S）；save() 包一层通知防抖上推；SIM/selftest 免同步；
+   ?reset=1 清档首轮 pushAll 推平云端（守渡 WIPED 语义）。 */
+(function(){
+  if(!window.KySync)return;
+  try{
+    var _osv=save;
+    save=function(){_osv();try{KySync.saved();}catch(e){}};
+  }catch(e){}
+  KySync.mount({
+    page:"408",
+    ready:function(){try{return typeof S==="object"&&!!S&&S.v===1;}catch(e){return false;}},
+    blocked:function(){try{return !!(ST_MODE||SIM);}catch(e){return true;}},
+    firstForce:(function(){try{return /[?&]reset=1/.test(location.search)?"pushAll":null;}catch(e){return null;}})(),
+    stores:[{
+      key:"ky408_v1",
+      get:function(){try{return S;}catch(e){return null;}},
+      set:function(d){S=d;try{localStorage.setItem(SKEY,JSON.stringify(S));}catch(e){}try{syncFlush();}catch(e){}}
+    }],
+    applied:function(){try{if(typeof VIEW==="object"&&VIEW.scr==="home"&&typeof renderHome==="function")renderHome();}catch(e){}},
+    mobile:{wordSelect:true,calloutSel:"#app"}
+  });
+  /* zen 黑幕下同步件一并归隐（同 coach 族规矩） */
+  try{var st=document.createElement("style");
+    st.textContent="body.zenon #kysync-btn,body.zenon #kysync-panel{display:none!important;}";
+    document.head.appendChild(st);}catch(e){}
+})();
+</script>
+<!--KY-SYNC-END-->
+<script>(function(){if(/[?&](selftest|coop)=/.test(location.search))return;var a=document.createElement("a");a.href="./index.html";a.id="kyhome";a.textContent="\u2302";a.title="\u56de\u706f\u4e0b";a.style.cssText="position:fixed;right:10px;bottom:calc(46px + env(safe-area-inset-bottom));z-index:9989;width:30px;height:30px;line-height:30px;text-align:center;color:#3c3c44;text-decoration:none;font-size:15px;border-radius:50%;";a.onmouseenter=function(){a.style.color="#8a8a94";};a.onmouseleave=function(){a.style.color="#3c3c44";};var f=function(){if(document.body)document.body.appendChild(a);else setTimeout(f,80);};f();})();</script>
+</body>
+</html>

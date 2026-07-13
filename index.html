@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>灯下</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#000000">
+<style>
+html,body{margin:0;padding:0;background:#000;color:#9a9aa2;min-height:100%;
+  font:15px/1.75 -apple-system,"Segoe UI","Microsoft YaHei",sans-serif;-webkit-font-smoothing:antialiased;}
+::-webkit-scrollbar{width:0;height:0;}
+#wrap{max-width:26rem;box-sizing:border-box;margin:0 auto;padding:12vh 1.3rem calc(3rem + env(safe-area-inset-bottom));}
+#mark{text-align:center;margin-bottom:.35rem;}
+#mark b{font-weight:300;font-size:1.5rem;letter-spacing:.55em;color:#cdcdd3;margin-left:.55em;}
+.dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:#a8965e;
+  vertical-align:.85em;margin-left:.1rem;animation:br 5.5s ease-in-out infinite;}
+@keyframes br{0%,100%{opacity:.22}50%{opacity:.9}}
+#sub{text-align:center;font-size:.68rem;color:#4a4a52;letter-spacing:.3em;margin-bottom:3.2rem;}
+.card{display:block;text-decoration:none;background:#0b0b0e;border:1px solid #1d1d23;border-radius:8px;
+  padding:1rem 1.15rem;margin-bottom:.85rem;transition:border-color .25s;}
+.card:hover{border-color:#33333c;}
+.ct{color:#d6d6dc;font-size:.95rem;letter-spacing:.06em;display:flex;justify-content:space-between;align-items:baseline;}
+.cp{font-size:.68rem;color:#8a7a4a;letter-spacing:.05em;font-variant-numeric:tabular-nums;}
+.cs{color:#63636c;font-size:.7rem;margin-top:.3rem;letter-spacing:.03em;}
+#foot{margin-top:3.4rem;text-align:center;font-size:.64rem;color:#3c3c44;line-height:2;}
+#foot a{color:#55555c;text-decoration:none;border-bottom:1px solid #26262c;cursor:pointer;}
+#foot a:hover{color:#8a8a94;}
+#inst{margin-top:1rem;text-align:center;font-size:.68rem;color:#6e6053;display:none;line-height:1.8;}
+#upmsg{color:#8a7a4a;}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="mark"><b>灯下</b><span class="dot"></span></div>
+  <div id="sub">数学 · 五更书 · 四〇八</div>
+  <a class="card" href="./math.html">
+    <div class="ct">数学宇宙<span class="cp" data-prog="math"></span></div>
+    <div class="cs">153 关 · 226 考纲原子 · 高数线代概率考点墙</div>
+  </a>
+  <a class="card" href="./universe.html">
+    <div class="ct">五更书<span class="cp" data-prog="wugeng"></span></div>
+    <div class="cs">141 句金课 · 理谱百科 · 牛津高阶全本词典</div>
+  </a>
+  <a class="card" href="./game.html">
+    <div class="ct">408 · 英一真题<span class="cp" data-prog="g408"></span></div>
+    <div class="cs">406 知识点 · 752 真题 · 英一真题 2022-2025</div>
+  </a>
+  <div id="inst">手机装成 app：Safari 底部 分享 ▸「添加到主屏幕」</div>
+  <div id="foot">
+    <span id="bld">55ab55d0</span> · <a id="upd">检查更新</a> <span id="upmsg"></span><br>
+    右下 ⇅ 配置云档同步 · 三端同一份进度
+  </div>
+</div>
+<script src="./sync_core.js"></script>
+<script>
+(function(){
+"use strict";
+function jget(k){try{return JSON.parse(localStorage.getItem(k)||"null");}catch(e){return null;}}
+function nk(o){return o?Object.keys(o).length:0;}
+function renderCounts(){
+  var el;
+  el=document.querySelector('[data-prog="wugeng"]');
+  if(el){var w=jget("ky_wugeng_v5"),n=0;
+    if(w&&w.laws)Object.keys(w.laws).forEach(function(id){if(w.laws[id]&&w.laws[id].t>=1)n++;});
+    el.textContent=n?("识 "+n+" / 141"):"未启";}
+  el=document.querySelector('[data-prog="math"]');
+  if(el){var m=jget("ky_math_v1"),c=0;
+    if(m&&m.cases)Object.keys(m.cases).forEach(function(id){if(m.cases[id]&&m.cases[id].seen)c++;});
+    el.textContent=c?("入关 "+c+" / 153"):"未启";}
+  el=document.querySelector('[data-prog="g408"]');
+  if(el){var g=jget("ky408_v1");
+    el.textContent=g&&nk(g.done)?("点 "+nk(g.done)+"/406 · 题 "+nk(g.seen)+"/752"):"未启";}
+}
+renderCounts();
+/* 云档同步：枢纽即总台（六店全挂，token 一处配置三端共用） */
+if(window.KySync){
+  KySync.mount({
+    page:"hub",
+    ready:function(){return true;},
+    blocked:function(){return false;},
+    stores:KySync.lsStores(["ky408_v1","ky_wugeng_v5","ky_mislog_v1","ky_gleans_v1","ky_math_v1","ky_math_wrong_v1"]),
+    applied:function(){renderCounts();},
+    mobile:{noClamp:true}   /* 枢纽自身响应式，无需 500 视口钉 */
+  });
+}
+/* iOS 未入主屏时给一行装法 */
+try{
+  var ua=navigator.userAgent||"";
+  if(/(iPhone|iPad|iPod)/.test(ua)&&!navigator.standalone)document.getElementById("inst").style.display="block";
+}catch(e){}
+/* 检查更新：SW 换代即刷 */
+(function(){
+  var $u=document.getElementById("upd"),$m=document.getElementById("upmsg");
+  if(!("serviceWorker" in navigator)||location.protocol==="file:"){$u.style.display="none";return;}
+  navigator.serviceWorker.register("./sw.js").catch(function(){});
+  var reloaded=false;
+  navigator.serviceWorker.addEventListener("controllerchange",function(){
+    if(reloaded)return;reloaded=true;location.reload();
+  });
+  $u.addEventListener("click",function(){
+    $m.textContent="查中…";
+    navigator.serviceWorker.getRegistration().then(function(r){
+      if(!r){$m.textContent="";return;}
+      return r.update().then(function(){
+        setTimeout(function(){$m.textContent=(r.installing||r.waiting)?"有新版，载入中…":"已是最新";},800);
+      });
+    }).catch(function(){$m.textContent="查不到（离线？）";});
+  });
+})();
+})();
+</script>
+</body>
+</html>
