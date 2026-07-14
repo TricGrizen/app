@@ -32,6 +32,10 @@ html,body{margin:0;padding:0;background:#000;color:#9a9aa2;min-height:100%;
 #foot a:hover{color:#8a8a94;}
 #inst{margin-top:1rem;text-align:center;font-size:.68rem;color:#6e6053;display:none;line-height:1.8;}
 #upmsg{color:#8a7a4a;}
+#live{margin-top:.5rem;text-align:center;font-size:.72rem;letter-spacing:.05em;line-height:1.9;}
+#live a{color:#5a5a62;text-decoration:none;border-bottom:1px solid #22222a;cursor:pointer;padding-bottom:1px;}
+#live a:hover{color:#9a9aa2;border-color:#33333c;}
+#livehost{color:#3c3c44;font-size:.62rem;letter-spacing:.03em;margin-left:.5em;}
 </style>
 </head>
 <body>
@@ -50,10 +54,11 @@ html,body{margin:0;padding:0;background:#000;color:#9a9aa2;min-height:100%;
     <div class="ct">408 · 英一真题<span class="cp" data-prog="g408"></span></div>
     <div class="cs">406 知识点 · 752 真题 · 英一真题 2022-2025</div>
   </a>
+  <div id="live"><a id="livego">同灯 · 看直播</a><span id="livehost"></span></div>
   <div id="inst">手机装成 app：Safari 底部 分享 ▸「添加到主屏幕」——只在 Safari 里开，七天不访问会被系统清档；装成 app 免疫</div>
   <div id="foot">
     <span id="fzrow"><a id="fzm">A−</a> <span id="fzv">100%</span> <a id="fzp">A+</a></span><br>
-    <span id="bld">d0913b8e</span> · <a id="upd">检查更新</a> <span id="upmsg"></span><br>
+    <span id="bld">482688a1</span> · <a id="upd">检查更新</a> <span id="upmsg"></span><br>
     右下 ⇅ 配置云档同步 · 三端同一份进度
   </div>
 </div>
@@ -88,6 +93,22 @@ renderCounts();
   document.getElementById("fzm").addEventListener("click",function(){v-=0.1;ap();});
   document.getElementById("fzp").addEventListener("click",function(){v+=0.1;ap();});
   ap();
+})();
+/* 看直播（同灯 join）：粘贴开播链接→存 ky_coop_link→跳转；存链后行尾显主机名，再点可换链 */
+(function(){
+  var LK="ky_coop_link";
+  var $go=document.getElementById("livego"),$hn=document.getElementById("livehost");
+  if(!$go)return;
+  function hostOf(u){try{return new URL(u).host;}catch(e){return "";}}
+  function paint(){var v="";try{v=localStorage.getItem(LK)||"";}catch(e){}$hn.textContent=v?("· "+hostOf(v)):"";}
+  paint();
+  $go.addEventListener("click",function(){
+    var prev="";try{prev=localStorage.getItem(LK)||"";}catch(e){}
+    var v=prompt("粘贴开播链接",prev);
+    if(v===null)return; v=(v||"").trim(); if(!v)return;
+    try{localStorage.setItem(LK,v);}catch(e){}
+    paint(); location.href=v;
+  });
 })();
 /* 云档同步：枢纽即总台（六店全挂，token 一处配置三端共用） */
 if(window.KySync){
