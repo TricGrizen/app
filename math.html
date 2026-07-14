@@ -346,6 +346,7 @@ i,em{font-style:normal}
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#000000">
+<style>@media (display-mode: standalone){body{padding-top:env(safe-area-inset-top)}}</style>
 </head>
 <body>
 <div id="st" class="hide"></div>
@@ -1218,7 +1219,7 @@ boot();
   $$(".cells").forEach(mount);   /* boot 期已渲的章簇框补挂（后续 buildWall 各自补挂新簇框） */
 })();
 </script>
-<!--KY-SYNC-BEGIN core+adapter_math.js @25b16d471d 由 tools/app/inject_shells.py 注入；正本在 tools/app/，改正本后重跑注入器再跑 build 管线-->
+<!--KY-SYNC-BEGIN core+adapter_math.js @d4f11406d2 由 tools/app/inject_shells.py 注入；正本在 tools/app/，改正本后重跑注入器再跑 build 管线-->
 <script>
 /* ============================================================================
    灯下 · 云档同步核心 sync_core.js（星槎 2026.7，PROGRESS AI 节）
@@ -1251,13 +1252,15 @@ function stab(x){ /* 键序无关的稳定序列化（只用于比较，不用�
   return s+"}";
 }
 function clone(x){return x==null?x:JSON.parse(JSON.stringify(x));}
+function badKey(o,k){return !Object.prototype.hasOwnProperty.call(o,k)||k==="__proto__"||k==="constructor";} /* 原型污染守卫（E7）：非自有键/__proto__/constructor 一律跳过 */
 function b64e(s){return btoa(unescape(encodeURIComponent(s)));}
 function b64d(b){return decodeURIComponent(escape(atob(String(b).replace(/\s/g,""))));}
 function uniqPrim(a){var s={},o=[],i;for(i=0;i<a.length;i++){var k=typeof a[i]+"·"+a[i];if(!s[k]){s[k]=1;o.push(a[i]);}}return o;}
 function uniqJson(a){var s={},o=[],i;for(i=0;i<a.length;i++){var k=stab(a[i]);if(!s[k]){s[k]=1;o.push(a[i]);}}return o;}
-function mArr(l,r,capN){ /* 追加型日志并集：内容去重 → 按 t 升序 → 截尾限额 */
+function mArr(l,r,capN){ /* 追加型日志并集：内容去重 → 按 t 升序（平票按 stab 字典序定序，防两端乒乓 E8）→ 截尾限额 */
   var m=uniqJson((l||[]).concat(r||[]));
-  m.sort(function(a,b){return (a&&a.t||0)-(b&&b.t||0);});
+  m.sort(function(a,b){var d=(a&&a.t||0)-(b&&b.t||0);if(d)return d;
+    var sa=stab(a),sb=stab(b);return sa<sb?-1:sa>sb?1:0;});
   return (capN&&m.length>capN)?m.slice(m.length-capN):m;
 }
 function minDate(a,b){if(a==null)return b;if(b==null)return a;return String(a)<=String(b)?a:b;}
@@ -1275,8 +1278,8 @@ function m408(l,r,ctx){
   o=clone(o); o.v=1; o.t=Math.max(lt,rt);
   o.firstDay=minDate(l.firstDay,r.firstDay)||o.firstDay;
   o.done={}; o.seen={};
-  [l,r].forEach(function(s){var m=s.done||{},k;for(k in m)o.done[k]=minDate(o.done[k],m[k]);});   /* 首过取早 */
-  [l,r].forEach(function(s){var m=s.seen||{},k;for(k in m)o.seen[k]=minDate(o.seen[k],m[k]);});   /* 首见取早 */
+  [l,r].forEach(function(s){var m=s.done||{},k;for(k in m){if(badKey(m,k))continue;o.done[k]=minDate(o.done[k],m[k]);}});   /* 首过取早 */
+  [l,r].forEach(function(s){var m=s.seen||{},k;for(k in m){if(badKey(m,k))continue;o.seen[k]=minDate(o.seen[k],m[k]);}});   /* 首见取早 */
   /* starred 三方合并（base=上次同步基线）：摘星是真删除，不靠并集复活 */
   var base=(ctx&&ctx.base&&ctx.base.starred)||null;
   if(base){
@@ -1293,14 +1296,15 @@ function m408(l,r,ctx){
   /* 集合一律排序：合并结果与参数顺序无关（决定性，防两端互推乒乓） */
   o.wrongs=uniqPrim((l.wrongs||[]).concat(r.wrongs||[])).sort();  /* ✗ 历史：只进不出 */
   o.heat={};
-  [l,r].forEach(function(s){var m=s.heat||{},d;for(d in m){var e=o.heat[d]=o.heat[d]||{k:0,q:0};
+  [l,r].forEach(function(s){var m=s.heat||{},d;for(d in m){if(badKey(m,d))continue;var e=o.heat[d]=o.heat[d]||{k:0,q:0};
     e.k=Math.max(e.k,m[d]&&m[d].k||0); e.q=Math.max(e.q,m[d]&&m[d].q||0);}});
   o.time={subj:{},ch:{}};
   [l,r].forEach(function(s){var tm=s.time||{};["subj","ch"].forEach(function(g){var m=tm[g]||{},k;
-    for(k in m)o.time[g][k]=Math.max(o.time[g][k]||0,m[k]||0);});});
+    for(k in m){if(badKey(m,k))continue;o.time[g][k]=Math.max(o.time[g][k]||0,m[k]||0);}});});
   o.exam={};                                                    /* 逐卷：进度多者（字节数）胜 */
-  (function(){var k,a=l.exam||{},b=r.exam||{},all={},x;for(k in a)all[k]=1;for(k in b)all[k]=1;
-    for(k in all){var va=a[k],vb=b[k];
+  (function(){var k,a=l.exam||{},b=r.exam||{},all={},x;
+    for(k in a){if(badKey(a,k))continue;all[k]=1;}for(k in b){if(badKey(b,k))continue;all[k]=1;}
+    for(k in all){if(badKey(all,k))continue;var va=a[k],vb=b[k];
       if(va==null)x=vb; else if(vb==null)x=va;
       else{var la=stab(va).length,lb=stab(vb).length;
         x=(la>lb)?va:(lb>la)?vb:pick(va,vb,lt,rt);}
@@ -1315,8 +1319,8 @@ function wuCaseT(S,id){var c=(S.cases||{})[id],L=(S.laws||{})[id];
   return t;}
 function mWugeng(l,r){
   var o={cases:{},laws:{},meta:{}},ids={},id;
-  [l.cases,r.cases,l.laws,r.laws].forEach(function(m){for(var k in (m||{}))ids[k]=1;});
-  for(id in ids){
+  [l.cases,r.cases,l.laws,r.laws].forEach(function(m){var mm=m||{};for(var k in mm){if(badKey(mm,k))continue;ids[k]=1;}});
+  for(id in ids){if(badKey(ids,id))continue;
     var tl=wuCaseT(l,id),tr=wuCaseT(r,id),w,lo;
     if(tl!==tr)w=(tl>tr)?l:r;
     else{ /* 平票走内容字典序（决定性，防两端互推乒乓） */
@@ -1337,7 +1341,7 @@ function mWugeng(l,r){
   o.meta.last=Math.max(lm.last||0,rm.last||0);
   ["dawn","rest","ob"].forEach(function(k){o.meta[k]=Math.max(lm[k]||0,rm[k]||0);});
   (function(){var che={},k,a=lm.che||{},b=rm.che||{};
-    for(k in a)che[k]=a[k]; for(k in b)che[k]=(typeof b[k]==="number"&&typeof che[k]==="number")?Math.max(che[k],b[k]):(k in che?(nm===rm?b[k]:che[k]):b[k]);
+    for(k in a){if(badKey(a,k))continue;che[k]=a[k];} for(k in b){if(badKey(b,k))continue;che[k]=(typeof b[k]==="number"&&typeof che[k]==="number")?Math.max(che[k],b[k]):(k in che?(nm===rm?b[k]:che[k]):b[k]);}
     o.meta.che=che;})();
   return o;
 }
@@ -1346,8 +1350,8 @@ function mathCaseT(S,id){var c=(S.cases||{})[id];if(!c)return 0;var t=0;
   return t||((c.seen||c.due)?1:0);}
 function mMath(l,r){
   var o={cases:{},meta:{}},ids={},id;
-  [l.cases,r.cases].forEach(function(m){for(var k in (m||{}))ids[k]=1;});
-  for(id in ids){
+  [l.cases,r.cases].forEach(function(m){var mm=m||{};for(var k in mm){if(badKey(mm,k))continue;ids[k]=1;}});
+  for(id in ids){if(badKey(ids,id))continue;
     var a=(l.cases||{})[id],b=(r.cases||{})[id];
     if(!a){o.cases[id]=clone(b);continue;} if(!b){o.cases[id]=clone(a);continue;}
     var w=pick(a,b,mathCaseT(l,id),mathCaseT(r,id));
@@ -1363,8 +1367,8 @@ function mMath(l,r){
   return o;
 }
 function mWB(l,r){var o={},ids={},k;
-  [l,r].forEach(function(m){for(var x in (m||{}))ids[x]=1;});
-  for(k in ids)o[k]=mArr((l||{})[k],(r||{})[k]);
+  [l,r].forEach(function(m){var mm=m||{};for(var x in mm){if(badKey(mm,x))continue;ids[x]=1;}});
+  for(k in ids){if(badKey(ids,k))continue;o[k]=mArr((l||{})[k],(r||{})[k]);}
   return o;}
 
 /* 店册：键 → {merge, virgin, sig(比较签名·剔除易变字段), shadowPick(三方基线)} */
@@ -1411,14 +1415,17 @@ function gh(method,path,body){
 function fpath(key){return "/repos/"+cfg.repo+"/contents/s/"+encodeURIComponent(key)+".json";}
 function pull(key){
   return gh("GET",fpath(key)+"?ref="+(cfg.branch||"main")).then(function(r){
-    if(r.s===404)return {sha:null,env:null};
-    if(r.s!==200||!r.j||r.j.content==null)throw new Error("拉取失败 HTTP "+r.s);
-    var env=null;try{env=JSON.parse(b64d(r.j.content));}catch(e){}
+    if(r.s===404)return {sha:null,env:null};                    /* 仅 404 = 云端无此店（空档） */
+    if(r.s!==200||!r.j)throw new Error("拉取失败 HTTP "+r.s);
+    if(r.j.content==null)throw new Error("店文件不可解(疑>1MB)");  /* >1MB 时 GitHub 返 200 但 content=null；fail-closed 报错不当空档（E6） */
+    var env;try{env=JSON.parse(b64d(r.j.content));}catch(e){throw new Error("店文件不可解(疑>1MB)");}
     return {sha:r.j.sha,env:env};
   });
 }
 function push(key,env,sha){
-  var body={message:"sync "+key+" @"+(cfg.dev||"dev"),content:b64e(JSON.stringify(env)),branch:cfg.branch||"main"};
+  var content=b64e(JSON.stringify(env));
+  if(content.length>950000)nearLimit=true;                      /* 近 GitHub Contents 1MB 上限：照推，syncNow 末尾提示（E6） */
+  var body={message:"sync "+key+" @"+(cfg.dev||"dev"),content:content,branch:cfg.branch||"main"};
   if(sha)body.sha=sha;
   return gh("PUT",fpath(key),body).then(function(r){
     if(r.s===200||r.s===201)return true;
@@ -1428,7 +1435,10 @@ function push(key,env,sha){
 }
 
 /* ---------------- 同步引擎 ---------------- */
-var A=null, busy=false, lastOkT=0, lastMsg="未配置", savedT=0, pollT=0;
+var A=null, busy=false, lastOkT=0, lastMsg="未配置", savedT=0, pollT=0, nearLimit=false;
+var SGEN_PRE="ky_sgen_";                                          /* 代际 gen 键前缀（E2）：每店本地记已见代号，缺省 0 */
+function sgenGet(key){var v=parseFloat(localStorage.getItem(SGEN_PRE+key));return isFinite(v)?v:0;}
+function sgenSet(key,v){try{localStorage.setItem(SGEN_PRE+key,String(v));}catch(e){}}
 function setMsg(m){lastMsg=m;renderStatus();}
 function hhmm(t){var d=new Date(t);return ("0"+d.getHours()).slice(-2)+":"+("0"+d.getMinutes()).slice(-2);}
 function shadowGet(key){try{return JSON.parse(localStorage.getItem(SHADOW_PRE+key)||"null");}catch(e){return null;}}
@@ -1438,39 +1448,52 @@ function syncStore(st,force){ /* force="pushAll"|"pullAll"|null */
   var lib=STORES[st.key]; if(!lib)return Promise.resolve({key:st.key,what:"unknown"});
   return pull(st.key).then(function(p){
     var remote=(p.env&&p.env.data!==undefined)?p.env.data:null;
+    var remoteGen=(p.env&&typeof p.env.gen==="number")?p.env.gen:0;  /* 代际（E2）：reset/推平抬 gen，云端代新即权威、跳过合并律 */
+    var localGen=sgenGet(st.key);
     var local=st.get();
-    var merged, what="same";
-    if(force==="pushAll")merged=local;
-    else if(force==="pullAll")merged=(remote!=null)?remote:local;
+    var merged, what="same", envGen=localGen, genAuth=false;
+    if(force==="pushAll"){merged=local;envGen=Date.now();}            /* 推平：本机为准、开新代 */
+    else if(force==="pullAll"){merged=(remote!=null)?remote:local;envGen=Math.max(localGen,remoteGen);}
     else if(local==null&&remote==null)return {key:st.key,what:"empty"};
-    else if(local==null)merged=remote;
-    else if(remote==null)merged=local;
-    else merged=lib.merge(local,remote,{base:shadowGet(st.key)});
+    else if(local==null){merged=remote;envGen=Math.max(localGen,remoteGen);}
+    else if(remote==null){merged=local;envGen=localGen;}             /* 404/首推：沿用本地代（E2-c） */
+    else if(remoteGen>localGen){merged=remote;genAuth=true;envGen=remoteGen;}  /* 云端代际权威：直采云端、跳过合并（E2-b） */
+    else{merged=lib.merge(local,remote,{base:shadowGet(st.key)});envGen=Math.max(localGen,remoteGen);}
     if(merged==null)return {key:st.key,what:"empty"};
     var sigM=lib.sig(merged);
     if(local==null||sigM!==lib.sig(local)){st.set(clone(merged));what="pulled";}
+    if(genAuth){                                                     /* 翻代：采纳云端、清本店 shadow、记新代，不回推（E2-b） */
+      if(lib.shadowPick)shadowSet(st.key,lib.shadowPick(merged));
+      sgenSet(st.key,remoteGen);
+      return {key:st.key,what:what};
+    }
     var needPush = (remote==null) ? !(lib.virgin(merged)&&!force)
                                   : sigM!==lib.sig(remote);
     if(force==="pullAll")needPush=false;
+    if(force==="pushAll"&&lib.shadowPick)shadowSet(st.key,lib.shadowPick(local));  /* 推平跳过旧 shadow 基线：先立本地 starred 为新基线（E2-a） */
     if(needPush){
-      var env={v:1,t:Date.now(),dev:cfg.dev||"dev",data:merged};
+      var env={v:1,t:Date.now(),dev:cfg.dev||"dev",gen:envGen,data:merged};
       var attempt=function(n,sha){
         return push(st.key,env,sha).then(function(ok){
           if(ok===true)return;
           if(n>=2)throw new Error("上推冲突未决");
           return pull(st.key).then(function(p2){
             var r2=(p2.env&&p2.env.data!==undefined)?p2.env.data:null;
-            if(r2!=null)env.data=lib.merge(env.data,r2,{base:shadowGet(st.key)});
+            if(force!=="pushAll"&&r2!=null)env.data=lib.merge(env.data,r2,{base:shadowGet(st.key)});  /* 推平 409 重试不合并：env.data 恒=local，只刷 sha（E2-a） */
             return attempt(n+1,p2.sha);
           });
         });
       };
       return attempt(0,p.sha).then(function(){
+        var fin=(what==="pulled")?"pulled":"pushed";
+        if(lib.sig(env.data)!==lib.sig(st.get())){st.set(clone(env.data));fin="pulled";}  /* 任一 push 成功后：合并果与本地不一致则本地采纳，否则 shadow 记了本地没有的星（E1） */
         if(lib.shadowPick)shadowSet(st.key,lib.shadowPick(env.data));
-        return {key:st.key,what:what==="pulled"?"pulled":"pushed"};
+        sgenSet(st.key,envGen);                                      /* 代确立于推成功之后（推失败不抬本地代，避免旧档复活） */
+        return {key:st.key,what:fin};
       });
     }
     if(lib.shadowPick)shadowSet(st.key,lib.shadowPick(merged));
+    sgenSet(st.key,envGen);                                          /* 无回推路径（含首拉采纳/pullAll）也落代，避免采纳后再工作被误判翻代丢失 */
     return {key:st.key,what:what};
   });
 }
@@ -1481,22 +1504,29 @@ function syncNow(manual,force){
   loadCfg();
   if(!enabled()){if(manual)setMsg("未配置 token");renderStatus();return Promise.resolve();}
   if(busy){if(manual)setMsg("同步中…");return Promise.resolve();}
-  busy=true;setMsg("同步中…");
-  var changed=[],pushed=0;
+  busy=true;setMsg("同步中…");nearLimit=false;
+  var changed=[],pushed=0,errs=[],settled=false,timer=0;
   var chain=Promise.resolve();
-  A.stores.forEach(function(st){
+  A.stores.forEach(function(st){                                  /* 逐店 .catch 收集错误继续下店：一店坏（含 fetch 悬挂/坏文件）不拖垮整轮（E10） */
     chain=chain.then(function(){return syncStore(st,force);}).then(function(r){
       if(r&&r.what==="pulled")changed.push(r.key);
       if(r&&r.what==="pushed")pushed++;
-    });
+    }).catch(function(e){errs.push({key:st.key,msg:String(e&&e.message||"错")});});
   });
-  return chain.then(function(){
+  var done=chain.then(function(){
+    if(settled)return;settled=true;clearTimeout(timer);
     busy=false;lastOkT=Date.now();
-    setMsg("✓ "+hhmm(lastOkT)+(changed.length?" 收"+changed.length:"")+(pushed?" 发"+pushed:""));
+    if(errs.length)setMsg("✗ "+errs.length+"店失败:"+errs[0].msg.slice(0,28));
+    else setMsg("✓ "+hhmm(lastOkT)+(changed.length?" 收"+changed.length:"")+(pushed?" 发"+pushed:"")+(nearLimit?" ⚠店近1MB界":""));
     if(changed.length&&A.applied){try{A.applied(changed);}catch(e){}}
   }).catch(function(e){
+    if(settled)return;settled=true;clearTimeout(timer);
     busy=false;setMsg("✗ "+String(e&&e.message||"网络不通").slice(0,42));
   });
+  var guard=new Promise(function(res){timer=setTimeout(function(){   /* 90s 硬超时：fetch 悬挂也不永久卡 busy（E10） */
+    if(!settled){settled=true;busy=false;setMsg("✗ 超时");}res();
+  },90000);});
+  return Promise.race([done,guard]);
 }
 
 /* 壳 save() 后的防抖上推 */
@@ -1508,12 +1538,12 @@ function saved(){
 
 /* ---------------- 面板 UI（克制灰阶 · 黑底） ---------------- */
 var UI_CSS=[
-"#kysync-btn{position:fixed;z-index:9990;right:10px;bottom:44px;width:30px;height:30px;line-height:30px;text-align:center;",  /* 44px=让开各壳底栏与 408 字号钮 */
+"#kysync-btn{position:fixed;z-index:9990;right:10px;bottom:calc(44px + env(safe-area-inset-bottom));width:30px;height:30px;line-height:30px;text-align:center;",  /* 44px=让开各壳底栏与 408 字号钮；safe-area 让开 iOS Home 条（I5） */
 " color:#3c3c44;font-size:14px;cursor:pointer;user-select:none;-webkit-user-select:none;border-radius:50%;transition:color .25s;}",
 "#kysync-btn:hover{color:#8a8a94;}",
 "#kysync-btn.kys-on{color:#5a5240;}#kysync-btn.kys-on:hover{color:#a8965e;}",
 "#kysync-btn.kys-err{color:#6e3a3a;}",
-"#kysync-panel{position:fixed;z-index:9991;right:12px;bottom:80px;width:19.5rem;background:#0a0a0c;border:1px solid #232329;",
+"#kysync-panel{position:fixed;z-index:9991;right:12px;bottom:calc(80px + env(safe-area-inset-bottom));width:19.5rem;background:#0a0a0c;border:1px solid #232329;",
 " border-radius:6px;padding:.9rem .95rem;font-size:.72rem;line-height:1.6;color:#9a9aa2;display:none;",
 " box-shadow:0 8px 30px rgba(0,0,0,.55);text-align:left;}",
 "#kysync-panel.show{display:block;}",
@@ -1580,6 +1610,8 @@ function buildUI(){
   $panel.appendChild(more);$panel.appendChild(io);$panel.appendChild($st);$panel.appendChild(hint);
   document.body.appendChild($btn);document.body.appendChild($panel);
   ["keydown","keyup","keypress"].forEach(function(t){$panel.addEventListener(t,function(e){e.stopPropagation();});});
+  $panel.addEventListener("focusin",function(){$panel.style.bottom="auto";$panel.style.top="calc(8px + env(safe-area-inset-top))";});  /* 输入聚焦：面板贴顶，免手机软键盘盖住（I8） */
+  $panel.addEventListener("focusout",function(){$panel.style.bottom="";$panel.style.top="";});
   function fill(){loadCfg();var c=cfg||{};tok.value=c.tok||"";dev.value=c.dev||"";repo.value=c.repo||DEF_REPO;onCk.checked=!!c.on;}
   $btn.addEventListener("click",function(){fill();$panel.classList.toggle("show");renderStatus();});
   document.addEventListener("pointerdown",function(e){
@@ -1601,7 +1633,7 @@ function buildUI(){
       var inp=JSON.parse(io.value);var n=0;
       (A?A.stores:[]).forEach(function(st){
         var lib=STORES[st.key];if(!lib||!inp.stores||inp.stores[st.key]==null)return;
-        var cur=st.get(),nv=(cur==null)?inp.stores[st.key]:lib.merge(cur,inp.stores[st.key],{base:shadowGet(st.key)});
+        var cur=st.get(),nv=(cur==null)?inp.stores[st.key]:lib.merge(cur,inp.stores[st.key],{base:null});  /* 快照导入只增不删：不以本机 shadow 作三方基线（E4） */
         st.set(clone(nv));n++;
       });
       if(A&&A.applied)try{A.applied(["import"]);}catch(e){}
@@ -1622,18 +1654,24 @@ function buildUI(){
 /* ---------------- 触屏与窄屏件（PROGRESS AI ⑤） ---------------- */
 function mobilePatch(opt){
   opt=opt||{};
-  try{ /* 窄屏视口钉 500：ip13pm 视口 428 < 布局下限 480-500，整体等比缩放 */
-    var w=Math.min(screen.width||9999,screen.height||9999);
-    if(!opt.noClamp&&w&&w<500){
-      var m=document.querySelector("meta[name=viewport]");
-      if(!m){m=document.createElement("meta");m.setAttribute("name","viewport");document.head.appendChild(m);}
-      m.setAttribute("content","width=500, viewport-fit=cover");
+  try{ /* 窄屏视口钉 500：按「当前视口」判且随转屏重估——横屏 926pt 若仍钉 500 会成 1.85x 放大镜（审查官发现④） */
+    if(!opt.noClamp){
+      var reclamp=function(){
+        var m=document.querySelector("meta[name=viewport]");
+        if(!m){m=document.createElement("meta");m.setAttribute("name","viewport");document.head.appendChild(m);}
+        var w=window.innerWidth||screen.width||9999;
+        var want=(w&&w<500)?"width=500, viewport-fit=cover":"width=device-width, initial-scale=1, viewport-fit=cover";
+        if(m.getAttribute("content")!==want)m.setAttribute("content",want);
+      };
+      reclamp();
+      window.addEventListener("orientationchange",function(){setTimeout(reclamp,120);});
+      window.addEventListener("resize",function(){setTimeout(reclamp,120);});
     }
   }catch(e){}
   if(!("ontouchstart" in window))return;
   var st=document.createElement("style");
   /* touch-action 必须落在命中目标上（只挂 body 时后代仍会吃双击缩放手势——手机双击查词难产的主嫌） */
-  st.textContent="body,body *{touch-action:manipulation;}"
+  st.textContent="html,body,body *{touch-action:manipulation;}"
     +(opt.calloutSel?opt.calloutSel+"{-webkit-touch-callout:none;}":"")                    /* 只禁系统长按菜单（保留选区能力） */
     +(opt.noSelectSel?opt.noSelectSel+"{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;}":"");
   document.head.appendChild(st);
@@ -1646,15 +1684,19 @@ function mobilePatch(opt){
     if(e.target&&e.target.closest&&e.target.closest("input,textarea,select,#kysync-panel"))return;
     var n=Date.now();
     var db=(n-lt)<450&&Math.hypot(t.clientX-lx,t.clientY-ly)<44;
-    if(!db){lt=n;lx=t.clientX;ly=t.clientY;lel=document.elementFromPoint(t.clientX,t.clientY);return;}
+    if(!db){lt=n;lx=t.clientX;ly=t.clientY;lel=e.target;return;}   /* 记 target 而非 elementFromPoint：捏合缩放下坐标系错位免疫（WebKit #170981） */
     var px=lx,py=ly,pel=(lel&&lel.isConnected)?lel:null;
     lt=0;lel=null;
-    if(opt.wordSelect)selectWordAt(px,py);
-    var tgt=pel||document.elementFromPoint(px,py)||document.body;
-    var ev;
-    try{ev=new MouseEvent("dblclick",{bubbles:true,cancelable:true,view:window,clientX:px,clientY:py});}
-    catch(err){ev=document.createEvent("MouseEvents");ev.initMouseEvent("dblclick",true,true,window,2,0,0,px,py,false,false,false,false,0,null);}
-    tgt.dispatchEvent(ev);
+    /* 延后派发恢复桌面事件序 click,click,dblclick——iOS 兼容鼠标事件在 touchend 之后才发，
+       同步派发会变成 click①→dblclick→click②，尾随 click 覆写澈泡/误推导读（审查官发现①） */
+    setTimeout(function(){
+      if(opt.wordSelect)selectWordAt(px,py);
+      var tgt=pel||document.elementFromPoint(px,py)||document.body;
+      var ev;
+      try{ev=new MouseEvent("dblclick",{bubbles:true,cancelable:true,view:window,clientX:px,clientY:py});}
+      catch(err){ev=document.createEvent("MouseEvents");ev.initMouseEvent("dblclick",true,true,window,2,0,0,px,py,false,false,false,false,0,null);}
+      tgt.dispatchEvent(ev);
+    },120);
   },{passive:true});
   function selectWordAt(x,y){ /* 给「读选区」型双击处理器铺路：程序化选中所点单词 */
     try{
@@ -1670,37 +1712,45 @@ function mobilePatch(opt){
   }
 }
 
-/* ---------------- 历史栈垫片（PROGRESS AI 追记四）：手机侧滑/浏览器返回=上一层而非直接离页
-   levels=[{isOpen,close}] 自顶向底；「有层敞开↔历史签在位」用 300ms 轮询对齐（免侵入包裹壳内每个开关函数）：
-   开层→补签 pushState；侧滑/返回→pop 签并 close() 最上层（层下还有层则轮询自动再补签，逐层可退）；
-   UI 键自关→history.back() 消签。签全消后再滑=浏览器原生离页（回枢纽）。 */
+/* ---------------- 历史栈垫片（PROGRESS AI 追记四；I2 重写）：手机侧滑/浏览器返回=上一层而非直接离页
+   levels=[{isOpen,close}] 自顶向底；「有层敞开↔历史签在位」由 ensureTag 对齐——冒泡相 click/touchend/keyup
+   三监听在同一手势派发内同步补签（携用户激活，防 WebKit #248303 跳过无手势 pushState）+ 600ms 轮询兜底桌面/深链。
+   开层→补签 pushState（仅未抛异常后置签）；侧滑/返回→popstate pop 签并 close() 最上层，setTimeout(0) 内若下面
+   还有层立即补签（逐层可退）；UI 键自关→ensureTag 见无层有签即 history.back() 消签。签全消后再滑=原生离页（回枢纽）。 */
 function histShim(levels){
   try{if(!window.history||!history.pushState||!levels||!levels.length)return;}catch(e){return;}
   var tagged=false;
   function top(){for(var i=0;i<levels.length;i++){try{if(levels[i].isOpen())return levels[i];}catch(e){}}return null;}
+  function hasTag(){try{return !!(history.state&&history.state.ky);}catch(e){return tagged;}}
+  function ensureTag(){                                    /* 层签对齐：有层无签补签、无层有签消签 */
+    var open=!!top();
+    if(open&&!tagged){try{history.pushState({ky:1},"");tagged=true;}catch(e){}}   /* 仅未抛异常后才置签 */
+    else if(!open&&tagged){tagged=false;if(hasTag()){try{history.back();}catch(e){}}}
+  }
   window.addEventListener("popstate",function(){
     var L=top();
-    if(L){tagged=false;try{L.close();}catch(e){}}
+    if(L){tagged=false;try{L.close();}catch(e){}
+      setTimeout(function(){if(top())ensureTag();},0);     /* 关顶层后若下面还有层：导航语境立即补签，逐层可退（I2） */
+    }
   });
-  setInterval(function(){
-    var open=!!top();
-    if(open&&!tagged){tagged=true;try{history.pushState({ky:1},"");}catch(e){}}
-    else if(!open&&tagged){tagged=false;
-      if(history.state&&history.state.ky){try{history.back();}catch(e){}}}
-  },300);
+  /* 冒泡相挂 click/touchend/keyup：同一手势派发内同步补签，携用户激活标记，防 WebKit #248303 跳过无手势签（I2） */
+  ["click","touchend","keyup"].forEach(function(t){document.addEventListener(t,function(){ensureTag();},false);});
+  setInterval(ensureTag,600);                              /* 桌面/深链兜底（无手势场景） */
 }
 
 /* ---------------- 装配 ---------------- */
 function mount(adapter){
   A=adapter;loadCfg();
+  try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist();}catch(e){}  /* iOS Safari 7 日无访问清档：申请持久存储豁免（I6） */
   mobilePatch(A.mobile||{});
   var tries=0;
   (function waitReady(){
     var ok=true;
     try{ok=!A.ready||A.ready();}catch(e){ok=false;}
-    if(!ok){if(++tries<120)return setTimeout(waitReady,500);}
+    if(!ok&&++tries<120)return setTimeout(waitReady,500);
     buildUI();renderStatus();
     if(A.blocked&&A.blocked())return;         /* 免写模式：连轮询都不挂 */
+    if(!ok){setMsg("壳未就绪，仅手动");return;}  /* ready 超时仍未就绪：不裸开 boot 同步/轮询/可见性，只留手动（E5） */
     setTimeout(function(){syncNow(false,A.firstForce||null);},1500);  /* ?reset=1 主动清档：firstForce="pushAll" 推平云端（沿守渡 WIPED 语义） */
     pollT=setInterval(function(){syncNow(false);},600000);
     document.addEventListener("visibilitychange",function(){

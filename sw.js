@@ -1,6 +1,6 @@
 /* 灯下 sw.js（build_app.py 产）：版本化预缓存=改版即整换；词典全本独立缓存名
    （内容不变不重下 34MB）；跨域（api.github.com 等）与非 GET 一律直通不拦。 */
-var V="dx-6bea66f5", DICT="dx-dict-12743b91";
+var V="dx-4ec355ba", DICT="dx-dict-12743b91";
 var PRE=["./", "./math.html", "./universe.html", "./game.html", "./data.js", "./exam_data.js", "./sync_core.js", "./index.html", "./icon-512.png", "./icon-192.png", "./icon-180.png", "./manifest.webmanifest"];
 self.addEventListener("install",function(e){
   e.waitUntil(caches.open(V).then(function(c){return c.addAll(PRE);}).then(function(){return self.skipWaiting();}));
@@ -24,7 +24,8 @@ self.addEventListener("fetch",function(e){
         return r;
       });
     });
-  }).catch(function(){
-    return caches.open(V).then(function(c){return c.match("./index.html");});
+  }).catch(function(err){
+    if(e.request.mode==="navigate")return caches.open(V).then(function(c){return c.match("./index.html");});
+    return Promise.reject(err);   /* 子资源（脚本/样式/数据）离线失败：抛出错误，绝不把 HTML 喂给非导航请求（I3） */
   }));
 });
