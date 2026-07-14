@@ -177,6 +177,19 @@ function loadCfg(){try{cfg=JSON.parse(localStorage.getItem(CFG_KEY)||"null");}ca
   if(!cfg||typeof cfg!=="object")cfg=null; return cfg;}
 function saveCfg(c){cfg=c;try{localStorage.setItem(CFG_KEY,JSON.stringify(c));}catch(e){}}
 function enabled(){return !!(cfg&&cfg.on&&cfg.tok&&cfg.repo);}
+function seedCfg(){ /* W3b：壁纸/PWA 免键盘 token 种子——空档（无 cfg 或 tok 空）时采纳本机 window.__KY_SYNC_CFG（sync_cfg.js 桩），只在空档生效一次，⇅ 面板后续修改照常覆写 */
+  try{
+    loadCfg();
+    if(cfg&&cfg.tok)return;                       /* 已有 token：种子不介入 */
+    var s=window.__KY_SYNC_CFG;
+    if(!s||typeof s!=="object"||!s.tok)return;
+    saveCfg({tok:String(s.tok).trim(),
+             dev:(s.dev?String(s.dev).trim():"")||"设备",
+             repo:(s.repo?String(s.repo).trim():"")||DEF_REPO,
+             branch:s.branch||"main",
+             on:s.on!==false});                   /* 缺省开启；显式 on:false（如自测防外呼）则存而不自动同步 */
+  }catch(e){}
+}
 
 /* ---------------- GitHub Contents 传输 ---------------- */
 function gh(method,path,body){
@@ -524,7 +537,7 @@ function histShim(levels){
 
 /* ---------------- 装配 ---------------- */
 function mount(adapter){
-  A=adapter;loadCfg();
+  A=adapter;loadCfg();seedCfg();  /* W3b：空档时采纳本机 sync_cfg.js 种子（免键盘贴 token） */
   try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist();}catch(e){}  /* iOS Safari 7 日无访问清档：申请持久存储豁免（I6） */
   mobilePatch(A.mobile||{});
   var tries=0;
