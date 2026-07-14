@@ -1229,7 +1229,7 @@ boot();
   $$(".cells").forEach(mount);   /* boot 期已渲的章簇框补挂（后续 buildWall 各自补挂新簇框） */
 })();
 </script>
-<!--KY-SYNC-BEGIN core+adapter_math.js @5381cdd4a5 由 tools/app/inject_shells.py 注入；正本在 tools/app/，改正本后重跑注入器再跑 build 管线-->
+<!--KY-SYNC-BEGIN core+evlog+adapter_math.js @16fa6c9d89 由 tools/app/inject_shells.py 注入；正本在 tools/app/，改正本后重跑注入器再跑 build 管线-->
 <script src="sync_cfg.js"></script>
 <script>
 /* ============================================================================
@@ -1800,6 +1800,138 @@ return {mount:mount,saved:saved,syncNow:syncNow,lsStores:lsStores,histShim:histS
         _m:{m408:m408,mWugeng:mWugeng,mMath:mMath,mWB:mWB,mArr:mArr,STORES:STORES,stab:stab},
         cfg:loadCfg,enabled:enabled};
 })();
+/* 灯下 · 原子行为流水（evlog_core，与 sync_core.js 同块注入三壳；正本在 tools/app/）。
+   window.KyEv：给五更书 / 数学宇宙补齐 game.html 同款「颗粒度最细」行为记录。
+   契约与 408 logEv 完全一致：POST http://127.0.0.1:8418/events
+     body = {sid, evs:[{t:Date.now(), app, e, ...ctx(), ...detail}, ...]}
+   离线暂存 localStorage "ky_evq_"+app（上限 4000，溢出丢最旧）；10s 批量、30s /ping 补传；
+   hidden 时 sendBeacon 尽力 flush。408 旧事件无 app 字段 = 天然区分。
+   ★ 未 init 时整对象零副作用：无定时器 / 无监听 / 无网络 / 无写入
+     （故 game.html 只随块注入、adapter_408 不 init，KyEv 空载静默）。
+   ★ blocked() 为真（selftest/SIM/SEEDED/MEMONLY/coop-join，与各壳同步适配器同口径）：
+     init 即惰化返回，log/flush 全成空操作、零 localStorage 写入。 */
+window.KyEv = (function () {
+  var URL = "http://127.0.0.1:8418";
+  var APP = null, BLK = null, CTX = null, SID = null, LSK = null;
+  var Q = [], SYNC_ON = false, INIT = false, HBN = 0;
+
+  function blocked() { try { return BLK ? !!BLK() : false; } catch (e) { return true; } }
+
+  function ctx() { try { var c = CTX && CTX(); return (c && typeof c === "object") ? c : null; } catch (e) { return null; } }
+
+  function log(e, detail) {
+    if (!INIT || blocked()) return;
+    var ev = { t: Date.now(), app: APP, e: e }, k, c = ctx();
+    if (c) for (k in c) if (c.hasOwnProperty(k) && ev[k] === undefined) ev[k] = c[k];
+    if (detail) for (k in detail) if (detail.hasOwnProperty(k)) ev[k] = detail[k];
+    Q.push(ev);
+    if (Q.length >= 40) flush();
+  }
+
+  function flush(beacon) {
+    if (!INIT || blocked()) return;
+    if (!SYNC_ON) {                        // 服务未起：暂存本地，重连后补传（同 408 节律）
+      if (!Q.length) return;
+      try {
+        var old = JSON.parse(localStorage.getItem(LSK) || "[]");
+        localStorage.setItem(LSK, JSON.stringify(old.concat(Q).slice(-4000)));
+      } catch (e) {}
+      Q = [];
+      return;
+    }
+    var pre = [];
+    try { pre = JSON.parse(localStorage.getItem(LSK) || "[]"); if (pre.length) localStorage.removeItem(LSK); } catch (e) {}
+    var evs = pre.concat(Q); Q = [];
+    if (!evs.length) return;
+    var body = JSON.stringify({ sid: SID, evs: evs });
+    try {
+      if (beacon && navigator.sendBeacon)
+        navigator.sendBeacon(URL + "/events", new Blob([body], { type: "text/plain;charset=UTF-8" }));
+      else
+        fetch(URL + "/events", { method: "POST", headers: { "Content-Type": "application/json" }, body: body, keepalive: true }).catch(function () {});
+    } catch (e) {}
+  }
+
+  function probe() {                        // 断联自愈：/ping 通即置 SYNC_ON 并补传
+    if (!INIT || blocked() || SYNC_ON) return;
+    try {
+      var opt = (typeof AbortSignal !== "undefined" && AbortSignal.timeout) ? { signal: AbortSignal.timeout(1500) } : {};
+      fetch(URL + "/ping", opt).then(function (r) { if (r && r.ok) { SYNC_ON = true; flush(); } }).catch(function () {});
+    } catch (e) {}
+  }
+
+  function descr(el) {                       // 记 target 的 id / data-* / 类名首词 / 文本前12字
+    var d = {};
+    try {
+      if (el.id) d.id = el.id;
+      var ds = el.dataset, keys = ds ? Object.keys(ds) : [], i, o;
+      if (keys.length) { o = {}; for (i = 0; i < keys.length && i < 4; i++) o[keys[i]] = String(ds[keys[i]] == null ? "" : ds[keys[i]]).slice(0, 24); d.d = o; }
+      var cn = el.className; if (cn && cn.baseVal !== undefined) cn = cn.baseVal;   // SVG 类名
+      if (typeof cn === "string" && cn.trim()) d.c = cn.trim().split(/\s+/)[0].slice(0, 24);
+      var tg = el.tagName; if (tg) d.g = tg.toLowerCase();
+      var tx = (el.textContent || "").replace(/\s+/g, " ").trim(); if (tx) d.x = tx.slice(0, 12);
+    } catch (e) {}
+    return d;
+  }
+
+  function meaningful(t) {                   // 就近攀到带 id/data/按钮/链接 的可辨控件（≤4 跳），否则原 target
+    var el = t, i;
+    for (i = 0; i < 4 && el && el.nodeType === 1 && el !== document.body; i++) {
+      if (el.id) return el;
+      if (el.dataset && Object.keys(el.dataset).length) return el;
+      if (el.tagName === "BUTTON" || el.tagName === "A") return el;
+      el = el.parentElement;
+    }
+    return (t && t.nodeType === 1) ? t : (t && t.parentElement) || null;
+  }
+
+  function onClick(ev) {
+    if (!INIT || blocked()) return;
+    var t = ev.target; if (!t) return;
+    var el = meaningful(t); if (!el) return;
+    log("click", descr(el));
+  }
+
+  function onDbl(ev) {                        // 双击查词：记选中词
+    if (!INIT || blocked()) return;
+    var w = "";
+    try { w = ((window.getSelection && String(window.getSelection())) || "").replace(/\s+/g, " ").trim().slice(0, 40); } catch (e) {}
+    var d = {};
+    if (w) d.w = w;
+    else { var t = ev.target, el = t && (t.nodeType === 1 ? t : t.parentElement); if (el) { var tx = (el.textContent || "").replace(/\s+/g, " ").trim(); if (tx) d.x = tx.slice(0, 24); } }
+    log("dbl", d);
+  }
+
+  function onVis() {
+    if (!INIT || blocked()) return;
+    log("vis", { s: document.visibilityState });
+    if (document.visibilityState === "hidden") flush(true);
+  }
+
+  function init(opt) {
+    if (INIT) return;                        // 幂等
+    opt = opt || {};
+    APP = opt.app || "unknown";
+    BLK = (typeof opt.blocked === "function") ? opt.blocked : null;
+    CTX = (typeof opt.ctx === "function") ? opt.ctx : null;
+    LSK = "ky_evq_" + APP;
+    SID = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    if (blocked()) return;                   // 惰化：零定时器/零监听/零网络/零写入
+    INIT = true;
+    try { document.addEventListener("click", onClick, true); } catch (e) {}
+    try { document.addEventListener("dblclick", onDbl, true); } catch (e) {}
+    try { document.addEventListener("visibilitychange", onVis); } catch (e) {}
+    try {
+      setInterval(function () { flush(); }, 10000);
+      setInterval(function () { probe(); }, 30000);
+      setInterval(function () { if (document.visibilityState === "visible" && ++HBN >= 5) { HBN = 0; log("hb", {}); } }, 60000);  // 5 分钟在场心跳（仅可见时）
+    } catch (e) {}
+    probe();
+    log("boot", {});
+  }
+
+  return { init: init, log: log, flush: flush, _q: function () { return Q; } };
+})();
 /* 数学宇宙壳适配器（math.html 专用）。两店=ky_math_v1/ky_math_wrong_v1（内存态 S/WB）；
    selftest(ST)/seed(SEEDED) 免同步；房内不打扰，收档在墙面静好时重绘。 */
 (function(){
@@ -1828,6 +1960,26 @@ return {mount:mount,saved:saved,syncNow:syncNow,lsStores:lsStores,histShim:histS
       {isOpen:function(){try{return !!R;}catch(e){return false;}},close:function(){try{closeRoom();}catch(e){}}}
     ]);
   }catch(e){}
+})();
+
+/* ---- 原子行为流水（KyEv，evlog_core 已同块注入；语义层零侵入壳内部：只包既有全局函数）----
+   blocked=ST||SEEDED；ctx=关 id/关类型。错题本 WB.push 内嵌于 reviewJudge 判错分支，
+   故 judge 事件（ok:0）即错题落点，无独立全局 add 函数可包。 */
+(function(){
+  if(!window.KyEv)return;
+  try{
+    KyEv.init({
+      app:"math",
+      blocked:function(){try{return !!(ST||SEEDED);}catch(e){return true;}},
+      ctx:function(){try{return {r:(typeof R!=="undefined"&&R&&R.level&&R.level.id)||null,kind:(typeof R!=="undefined"&&R&&R.kind)||null};}catch(e){return null;}}
+    });
+  }catch(e){}
+  function L(e,d){try{KyEv.log(e,d);}catch(_){}}
+  try{var _rec=rec;rec=function(id,kind,ok,ms){L("rec",{id:id,kind:kind,ok:ok?1:0,ms:Math.round(ms||0)});return _rec.apply(this,arguments);};}catch(e){}
+  try{var _rj=reviewJudge;reviewJudge=function(ok){L("judge",{ok:ok?1:0});return _rj.apply(this,arguments);};}catch(e){}
+  try{var _cr=closeRoom;closeRoom=function(){L("roomclose",{});return _cr.apply(this,arguments);};}catch(e){}
+  try{var _ol=openLevel;openLevel=function(id){L("roomopen",{id:id});return _ol.apply(this,arguments);};}catch(e){}
+  try{var _af=applyFz;applyFz=function(){try{L("fz",{fz:(typeof MFZ!=="undefined")?MFZ:null});}catch(_){}return _af.apply(this,arguments);};}catch(e){}
 })();
 </script>
 <!--KY-SYNC-END-->
