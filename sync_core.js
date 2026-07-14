@@ -431,14 +431,21 @@ function buildUI(){
 /* ---------------- 触屏与窄屏件（PROGRESS AI ⑤） ---------------- */
 function mobilePatch(opt){
   opt=opt||{};
+  try{ /* A1：standalone（PWA 加主屏/全屏）→ html.kysa，各壳 CSS 据 env(safe-area-inset) 让开刘海顶/Home 条底 */
+    if(navigator.standalone===true||(window.matchMedia&&window.matchMedia("(display-mode: standalone)").matches))
+      document.documentElement.classList.add("kysa");
+  }catch(e){}
   try{ /* 窄屏视口钉 500：按「当前视口」判且随转屏重估——横屏 926pt 若仍钉 500 会成 1.85x 放大镜（审查官发现④） */
     if(!opt.noClamp){
       var reclamp=function(){
         var m=document.querySelector("meta[name=viewport]");
         if(!m){m=document.createElement("meta");m.setAttribute("name","viewport");document.head.appendChild(m);}
         var w=window.innerWidth||screen.width||9999;
-        var want=(w&&w<500)?"width=500, viewport-fit=cover":"width=device-width, initial-scale=1, viewport-fit=cover";
+        var clamp=!!(w&&w<500);
+        var want=clamp?"width=500, viewport-fit=cover":"width=device-width, initial-scale=1, viewport-fit=cover";
         if(m.getAttribute("content")!==want)m.setAttribute("content",want);
+        if(window.__KY_CLAMPED!==clamp){window.__KY_CLAMPED=clamp;   /* B3：置/撤钳即广播，各壳 fz 应用据此把生效值 cap 到 2.0（存储值不动） */
+          try{window.dispatchEvent(new Event("ky:reclamp"));}catch(e){}}
       };
       reclamp();
       window.addEventListener("orientationchange",function(){setTimeout(reclamp,120);});

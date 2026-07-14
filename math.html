@@ -54,17 +54,24 @@ i,em{font-style:normal}
 
 /* ————— HUD 顶栏 ————— */
 #hud{position:fixed;top:0;left:0;right:0;z-index:30;display:flex;justify-content:space-between;
-  align-items:baseline;padding:.85rem 1.5rem .5rem;pointer-events:none;gap:1rem}
+  align-items:baseline;padding:1.05em 1.85em .62em;pointer-events:none;gap:1.23em;font-size:13px} /* B2：栏条钉 13px，内距/子字改 em，不随 --fz 越屏 */
 #hud>*{pointer-events:auto}
-#brand{font-family:var(--cjk);font-size:.95rem;letter-spacing:.42em;color:var(--faint)}
-#hudr{display:flex;gap:1.15rem;align-items:baseline;font-family:var(--mono);font-size:.62rem;
+/* A2 · standalone 刘海适配（mobilePatch 判 standalone→html.kysa）：栏顶让开安全区 */
+html.kysa #hud{top:env(safe-area-inset-top,0px)}
+html.kysa body{padding-top:env(safe-area-inset-top,0px)}
+#brand{font-family:var(--cjk);font-size:1.17em;letter-spacing:.42em;color:var(--faint)}
+#hudr{display:flex;gap:1.86em;align-items:baseline;font-family:var(--mono);font-size:.76em;
   letter-spacing:.16em;color:var(--faint)}
 #hudr button:hover{color:var(--dim)}
 #hudr a{color:inherit;text-decoration:none}
-/* 字号旋钮：与右上角控件同族（克制灰阶小字）；A−/A+ 步进，#kv 显示百分比 */
-#knob{display:inline-flex;gap:.5rem;align-items:baseline}
-#knob button[data-k]:hover{color:var(--dim)}
-#kv{color:var(--dim);min-width:2.7em;text-align:center;letter-spacing:.1em}
+/* B1 · 浮动字号钮（三壳统一，抄 game.html #fzctl 族）：房内/各页均可调；z 在房(≈40)之上、⇅(9990)之下。
+   位置上移+左让：避开底部读出条/关卡导航栏与右下 ⇅ 同步钮（bottom:12→48、right:14→50） */
+#fzctl{position:fixed;right:50px;bottom:calc(48px + env(safe-area-inset-bottom,0px));z-index:9988;display:flex;
+  align-items:center;gap:.55rem;font-family:var(--mono);font-size:.62rem;letter-spacing:.1em;color:var(--faint);
+  opacity:.32;user-select:none;-webkit-user-select:none;font-variant-numeric:tabular-nums;transition:opacity .3s}
+#fzctl:hover{opacity:.9}
+#fzctl span{cursor:pointer;padding:2px 4px}
+#fzctl span:hover{color:var(--dim)}
 #cd{color:var(--dim)}
 #cd:hover{color:var(--s1)}
 #cd b{color:var(--gold);font-weight:400}
@@ -354,12 +361,12 @@ i,em{font-style:normal}
   <div id="brand"><a href="game.html" style="color:inherit;text-decoration:none">数学宇宙</a></div>
   <div id="hudr">
     <span id="cd"></span>
-    <div id="knob"><button data-k="-">A−</button><span id="kv">100%</span><button data-k="+">A+</button></div>
     <button id="refBtn">速查</button>
     <button id="wbBtn">错题档</button>
     <a href="game.html"><button>← 刷题</button></a>
   </div>
 </div>
+<div id="fzctl" title="字号（仅本机生效，不随存档迁移）"><span data-fz="-">A−</span><span data-fz="0" id="fzpct">100%</span><span data-fz="+">A+</span></div>
 <div id="plan"></div>
 <div id="wall"></div>
 <div id="read"></div>
@@ -1097,17 +1104,20 @@ function applySeed(n){
    自调用即恢复存档字号，不入 boot，selftest/reset 各路径零干扰。 */
 var MFZ_KEY="ky_math_fz";
 var MFZ=(function(){var v=parseFloat(localStorage.getItem(MFZ_KEY));if(!v||isNaN(v))return 1;if(v>10)v=v/100;return Math.min(3.0,Math.max(.5,v));})();
-function applyFz(){document.documentElement.style.setProperty("--fz",MFZ);var kv=$("#kv");if(kv)kv.textContent=Math.round(MFZ*100)+"%";}
+function applyFz(){var eff=window.__KY_CLAMPED?Math.min(2.0,MFZ):MFZ; /* B3：窄屏钳制时生效值 cap 2.0（存储值不动，显示%=生效值） */
+  document.documentElement.style.setProperty("--fz",eff);var p=$("#fzpct");if(p)p.textContent=Math.round(eff*100)+"%";}
 (function(){
-  var kn=$("#knob");if(!kn)return;
-  kn.addEventListener("click",function(e){
-    var b=e.target.closest("button[data-k]");if(!b)return;
-    var step=b.getAttribute("data-k")==="+"?0.1:-0.1;
-    MFZ=Math.min(3.0,Math.max(.5,Math.round((MFZ+step)*100)/100)); /* 域 0.5~3.0（星槎：宽域亲令） */
+  var c=$("#fzctl");if(!c)return;
+  c.addEventListener("click",function(e){ /* B1：浮动字号钮（各页/房内均可调）——绑既有 MFZ/applyFz/MFZ_KEY */
+    var k=e.target&&e.target.getAttribute("data-fz");
+    if(k==="+")MFZ=Math.min(3.0,Math.max(.5,Math.round((MFZ+0.1)*100)/100));
+    else if(k==="-")MFZ=Math.min(3.0,Math.max(.5,Math.round((MFZ-0.1)*100)/100));
+    else if(k==="0")MFZ=1; else return;
     try{localStorage.setItem(MFZ_KEY,String(MFZ));}catch(x){}applyFz();
   });
   applyFz();
 })();
+window.addEventListener("ky:reclamp",applyFz); /* 置/撤钳（转屏/窄屏）即重算生效字号 */
 
 function boot(){
   if(Q.has("reset")){
@@ -1219,7 +1229,7 @@ boot();
   $$(".cells").forEach(mount);   /* boot 期已渲的章簇框补挂（后续 buildWall 各自补挂新簇框） */
 })();
 </script>
-<!--KY-SYNC-BEGIN core+adapter_math.js @d4f11406d2 由 tools/app/inject_shells.py 注入；正本在 tools/app/，改正本后重跑注入器再跑 build 管线-->
+<!--KY-SYNC-BEGIN core+adapter_math.js @a80ae3eb2d 由 tools/app/inject_shells.py 注入；正本在 tools/app/，改正本后重跑注入器再跑 build 管线-->
 <script>
 /* ============================================================================
    灯下 · 云档同步核心 sync_core.js（星槎 2026.7，PROGRESS AI 节）
@@ -1654,14 +1664,21 @@ function buildUI(){
 /* ---------------- 触屏与窄屏件（PROGRESS AI ⑤） ---------------- */
 function mobilePatch(opt){
   opt=opt||{};
+  try{ /* A1：standalone（PWA 加主屏/全屏）→ html.kysa，各壳 CSS 据 env(safe-area-inset) 让开刘海顶/Home 条底 */
+    if(navigator.standalone===true||(window.matchMedia&&window.matchMedia("(display-mode: standalone)").matches))
+      document.documentElement.classList.add("kysa");
+  }catch(e){}
   try{ /* 窄屏视口钉 500：按「当前视口」判且随转屏重估——横屏 926pt 若仍钉 500 会成 1.85x 放大镜（审查官发现④） */
     if(!opt.noClamp){
       var reclamp=function(){
         var m=document.querySelector("meta[name=viewport]");
         if(!m){m=document.createElement("meta");m.setAttribute("name","viewport");document.head.appendChild(m);}
         var w=window.innerWidth||screen.width||9999;
-        var want=(w&&w<500)?"width=500, viewport-fit=cover":"width=device-width, initial-scale=1, viewport-fit=cover";
+        var clamp=!!(w&&w<500);
+        var want=clamp?"width=500, viewport-fit=cover":"width=device-width, initial-scale=1, viewport-fit=cover";
         if(m.getAttribute("content")!==want)m.setAttribute("content",want);
+        if(window.__KY_CLAMPED!==clamp){window.__KY_CLAMPED=clamp;   /* B3：置/撤钳即广播，各壳 fz 应用据此把生效值 cap 到 2.0（存储值不动） */
+          try{window.dispatchEvent(new Event("ky:reclamp"));}catch(e){}}
       };
       reclamp();
       window.addEventListener("orientationchange",function(){setTimeout(reclamp,120);});
