@@ -343,6 +343,33 @@ html.kysa body{padding-top:env(safe-area-inset-top,0px)}
   #rin{padding-top:3.4rem}
 }
 
+/* 手机窄屏舒适档（AN：500 钳下抬字号基准/亮灰阶下限/放大触点/避 iOS 安全区；
+   纯黑克制纲领不破——灰仍是灰，只抬下限；公式长于屏改容器内滚，滚动条全局已隐） */
+@media(max-width:520px){
+  html,body{font-size:calc(18.5px * var(--fz,1))}
+  :root{--dim:#7b8191;--faint:#4b515d;--faint2:#363c48}
+  #plan{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-right:1.6rem}
+  #plan .chip{flex:none}
+  .row{padding:.34rem .1rem .34rem .5rem}
+  .row .rt{font-size:.84rem}
+  .chd{font-size:.76rem}
+  .bl{font-size:.8rem}
+  .rbody{font-size:.99rem;line-height:2.02}
+  .sech{font-size:1.12rem}
+  .mc .mcq{font-size:.99rem}
+  .check .chq{font-size:.99rem}
+  .opt{padding:.78rem .95rem}
+  .nbtn{padding:.72rem 1.55rem}
+  #rin{padding:3.9rem .95rem calc(7.5rem + env(safe-area-inset-bottom,0px))}
+  #rtop{font-size:.68rem;padding-top:calc(.55rem + env(safe-area-inset-top,0px));
+    background:linear-gradient(var(--paper) 72%,transparent)}
+  #rnav{padding-bottom:calc(1.15rem + env(safe-area-inset-bottom,0px))}
+  .rbody .katex-display{overflow-x:auto;overflow-y:hidden;padding-bottom:.15rem}
+  .skx{overflow-x:auto}
+  .ctab{overflow-x:auto}
+  .trig .tt{font-size:.92rem}
+}
+
 /* ————— 4K/高分屏字号（WE 桌面壁纸 3840×2160 字太小 → 放大 rem 基准；
    rem-only 布局跨字号自相似；墙章簇框 .cells 放大溢出即内部滚动，「整墙一屏」不破）
    ——— 24/33px 同乘 var(--fz) 保留手动旋钮（只加不改基准；旋钮域 0.7~2.4） ————— */

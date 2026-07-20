@@ -25,8 +25,8 @@ html,body{margin:0;padding:0;background:#000;color:#9a9aa2;min-height:100%;
   padding:1rem 1.15rem;margin-bottom:.85rem;transition:border-color .25s;}
 .card:hover{border-color:#33333c;}
 .ct{color:#d6d6dc;font-size:.95rem;letter-spacing:.06em;display:flex;justify-content:space-between;align-items:baseline;}
-.cp{font-size:.68rem;color:#8a7a4a;letter-spacing:.05em;font-variant-numeric:tabular-nums;}
-.cs{color:#63636c;font-size:.7rem;margin-top:.3rem;letter-spacing:.03em;}
+.cp{font-size:.74rem;color:#8a7a4a;letter-spacing:.05em;font-variant-numeric:tabular-nums;}
+.cs{color:#6e6e78;font-size:.78rem;margin-top:.34rem;letter-spacing:.03em;}
 #foot{margin-top:3.4rem;text-align:center;font-size:.64rem;color:#3c3c44;line-height:2;}
 #foot a{color:#55555c;text-decoration:none;border-bottom:1px solid #26262c;cursor:pointer;}
 #foot a:hover{color:#8a8a94;}
@@ -44,7 +44,7 @@ html,body{margin:0;padding:0;background:#000;color:#9a9aa2;min-height:100%;
   <div id="sub">数学 · 五更书 · 四〇八</div>
   <a class="card" href="./math.html">
     <div class="ct">数学宇宙<span class="cp" data-prog="math"></span></div>
-    <div class="cs">153 关 · 226 考纲原子 · 高数线代概率考点墙</div>
+    <div class="cs">154 关 · 226 考纲原子 · 高数线代概率考点墙</div>
   </a>
   <a class="card" href="./universe.html">
     <div class="ct">五更书<span class="cp" data-prog="wugeng"></span></div>
@@ -58,7 +58,7 @@ html,body{margin:0;padding:0;background:#000;color:#9a9aa2;min-height:100%;
   <div id="inst">手机装成 app：Safari 底部 分享 ▸「添加到主屏幕」——只在 Safari 里开，七天不访问会被系统清档；装成 app 免疫</div>
   <div id="foot">
     <span id="fzrow"><a id="fzm">A−</a> <span id="fzv">100%</span> <a id="fzp">A+</a></span><br>
-    <span id="bld">31481d48</span> · <a id="upd">检查更新</a> <span id="upmsg"></span><br>
+    <span id="bld">a64f01ec</span> · <a id="upd">检查更新</a> <span id="upmsg"></span><br>
     右下 ⇅ 配置云档同步 · 三端同一份进度
   </div>
 </div>
@@ -77,7 +77,7 @@ function renderCounts(){
   el=document.querySelector('[data-prog="math"]');
   if(el){var m=jget("ky_math_v1"),c=0;
     if(m&&m.cases)Object.keys(m.cases).forEach(function(id){if(m.cases[id]&&m.cases[id].seen)c++;});
-    el.textContent=c?("入关 "+c+" / 153"):"未启";}
+    el.textContent=c?("入关 "+c+" / 154"):"未启";}
   el=document.querySelector('[data-prog="g408"]');
   if(el){var g=jget("ky408_v1");
     el.textContent=g&&nk(g.done)?("点 "+nk(g.done)+"/406 · 题 "+nk(g.seen)+"/752"):"未启";}

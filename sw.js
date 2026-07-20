@@ -1,6 +1,6 @@
 /* 灯下 sw.js（build_app.py 产）：版本化预缓存=改版即整换；词典全本独立缓存名
    （内容不变不重下 34MB）；跨域（api.github.com 等）与非 GET 一律直通不拦。 */
-var V="dx-31481d48", DICT="dx-dict-12743b91";
+var V="dx-a64f01ec", DICT="dx-dict-12743b91";
 var PRE=["./", "./math.html", "./universe.html", "./game.html", "./data.js", "./exam_data.js", "./sync_core.js", "./sync_cfg.js", "./index.html", "./icon-512.png", "./icon-192.png", "./icon-180.png", "./manifest.webmanifest"];
 self.addEventListener("install",function(e){
   e.waitUntil(caches.open(V).then(function(c){return c.addAll(PRE);}).then(function(){return self.skipWaiting();}));
