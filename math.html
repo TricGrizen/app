@@ -374,10 +374,15 @@ body.gv #gvn{color:var(--gold);border-color:#3a3524}
   .check .chq{font-size:.99rem}
   .opt{padding:.78rem .95rem}
   .nbtn{padding:.72rem 1.55rem}
-  #rin{padding:3.9rem .95rem calc(7.5rem + env(safe-area-inset-bottom,0px))}
-  #rtop{font-size:.68rem;padding-top:calc(.55rem + env(safe-area-inset-top,0px));
-    background:linear-gradient(var(--paper) 72%,transparent)}
-  #rnav{padding-bottom:calc(1.15rem + env(safe-area-inset-bottom,0px))}
+  #rin{padding:1.1rem .95rem calc(8.5rem + env(safe-area-inset-bottom,0px))}
+  #rtop{position:sticky;font-size:.68rem;background:var(--paper);border-bottom:1px solid var(--faint2);
+    padding-top:calc(.55rem + env(safe-area-inset-top,0px));padding-bottom:.5rem} /* 大字号自涨自占位，永不压正文 */
+  #rnav{flex-wrap:wrap;row-gap:.45rem;gap:.7rem;padding-bottom:calc(1.05rem + env(safe-area-inset-bottom,0px))}
+  #hudr{flex-wrap:wrap;justify-content:flex-end;row-gap:.2em}
+  .qrow{display:block;padding:.42rem 0} /* 窄屏改上下两行：题行+注行，任何字号不挤竖条 */
+  .qrow .qt{display:block;width:auto;white-space:normal}
+  .qrow .qtr{display:block;margin-top:.1rem}
+  #fzctl{font-size:11px;right:12px;bottom:calc(8px + env(safe-area-inset-bottom,0px))} /* 控件不随字号长个，缩进角落 */
   .rbody .katex-display{overflow-x:auto;overflow-y:hidden;padding-bottom:.15rem}
   .skx{overflow-x:auto}
   .ctab{overflow-x:auto}
@@ -1549,7 +1554,9 @@ function applySeed(n){
    仿 universe.html #knob：改 --fz，html/body font-size 全走 calc(基准*var(--fz))；rem-only 布局整体缩放。
    自调用即恢复存档字号，不入 boot，selftest/reset 各路径零干扰。 */
 var MFZ_KEY="ky_math_fz";
-var MFZ=(function(){var v=parseFloat(localStorage.getItem(MFZ_KEY));if(!v||isNaN(v))return 1;if(v>10)v=v/100;return Math.min(3.0,Math.max(.5,v));})();
+var MFZ=(function(){
+  var qf=parseFloat(Q.get("fz"));if(qf&&!isNaN(qf))return Math.min(3.0,Math.max(.5,qf)); /* ?fz=1.7 调试参：只生效不落盘 */
+  var v=parseFloat(localStorage.getItem(MFZ_KEY));if(!v||isNaN(v))return 1;if(v>10)v=v/100;return Math.min(3.0,Math.max(.5,v));})();
 function applyFz(){var eff=window.__KY_CLAMPED?Math.min(2.0,MFZ):MFZ; /* B3：窄屏钳制时生效值 cap 2.0（存储值不动，显示%=生效值） */
   document.documentElement.style.setProperty("--fz",eff);var p=$("#fzpct");if(p)p.textContent=Math.round(eff*100)+"%";}
 (function(){
