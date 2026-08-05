@@ -819,6 +819,27 @@ function loadState(){
   /* P16 应用级指针迁移：坏件作废（此时尚无 byId 索引，关 id 是否在库留给路由时判） */
   if(S.meta.lastk&&(typeof S.meta.lastk!=="object"||Array.isArray(S.meta.lastk)
      ||typeof S.meta.lastk.k!=="string"||!S.meta.lastk.k))S.meta.lastk=null;
+  /* ===== P16 事故勘误（PROGRESS AS 案）：剔除 2026-08-05 03:20UTC 测试误写云档的假记录，
+     精确时戳匹配；2026-09 后可整段删除。 =====
+     假记录已随同步进过各设备本地档，云端直删会被设备端按 max(hits[].t) 判新冲回，故治本＝壳内
+     一次性精确勘误：每台设备 loadState 时自愈，之后正常同步把净化版顺合并律推上云。只动
+     k_gs1_07 一案、只认下列固定时戳，二次执行无匹配即空转＝天然幂等。 */
+  (function(){
+    var BADH=[1785900049308,1785900051583,1785900052526,1785900053468,
+              1785900054400,1785900055320,1785900056240];               /* 7 条假 hits */
+    var BADM=[1785900051583,1785900052526,1785900053468,
+              1785900054400,1785900055320];                             /* 5 个假 mc 键（按值 .t 认，不认键名） */
+    var c=S.cases["k_gs1_07"];
+    if(c){
+      if(Array.isArray(c.hits))c.hits=c.hits.filter(function(h){return !(h&&BADH.indexOf(h.t)>=0);});
+      if(c.mc&&typeof c.mc==="object")Object.keys(c.mc).forEach(function(k){
+        var v=c.mc[k];if(v&&typeof v==="object"&&BADM.indexOf(v.t)>=0)delete c.mc[k];
+      });
+      if(c.pos&&c.pos.ts===1785900057165)delete c.pos;                  /* 假续学位 */
+    }
+    /* 假应用级指针：ts 精确匹配已是最强闸，不依赖该案卷是否还在（清过档的设备也应清指针） */
+    if(S.meta.lastk&&S.meta.lastk.ts===1785900232826)S.meta.lastk=null;
+  })();
   try{WB=JSON.parse(localStorage.getItem(WRONG))||{};}catch(e){WB={};}
   if(!WB||typeof WB!=="object")WB={};
 }
