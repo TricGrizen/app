@@ -39,6 +39,16 @@
       收墙关重进＝回看态（browse）：零记账（rec/mc 不落档、seal 换「返回墙」），顶条展开增目录行（拍/节 chip 随机访问）。
     件五 横滚归零＝文档级 overflow-x:hidden ＋ 宽内容元素级内滚（KaTeX 独立式/行内式容器、对比表、题面、卡面）。
     契约 tools/math/_p15/SPEC_P16_移动首页与单独PWA与精确续学.md。
+  P18（滚动双修 · 真机反馈两件）：
+    件一 上滑黑块＝**根滚动器从未被锁**。移动墙走静态流后 body 长达数千 px，进房只设 body.overflow=hidden，
+      而 html{overflow-x:hidden} 已使根滚动器是 html（body 的 overflow 不再传播到视口）⇒ 房/册子开着时
+      文档照样能滚一整堵墙；iOS 上根文档可滚即触发地址栏收放、且惯性滚动期 fixed 层随视觉视口漂移不重绘，
+      下方露出等高 body 纯黑底＝「大块黑块」。修＝docLock() 两保（html{overflow:hidden} ＋ 移动墙三件收起
+      让 body 高度物理塌成 0），退出解锁并复原原位。共犯＝窄屏钳 reclamp 自反判据 428⇄500 无限振荡
+      （实测 10s/84 次），改由壳内 mReclamp() 配置键迟滞版接管（adapter mobile.noClamp=true，公共正本未改）。
+    件二 转屏漂移＝宽变 >15% 时按内容锚复位：拿变化前记下的「视口顶部定位单元＋到容器顶的偏移」，
+      变化后瞬时滚回同一偏移（零动画、纯内存）；单元集＝P16 c.pos 拍内锚那一族，墙视图按章簇。
+    契约 tools/math/_p15/SPEC_P18_滚动双修.md。
   KaTeX 0.17.0（MIT）：dev 经 vendor 引用，build 期全内联（base64 woff2）；throwOnError:false 降级红字源码。
   数据：math_data.js（window.__MATH={levels,chapters,atoms,meta}）；壳容忍 teach:null 骨架关（渲染考纲原文+师承指针）。
   存档：ky_math_v1 + ky_math_wrong_v1（一件一档，freshState 加字段必写 loadState 迁移）。
@@ -650,6 +660,20 @@ body{overflow-x:hidden}
    只有真超宽的少数段落变内滚容器，并留 .2em 底衬吸收行内式的纵向溢出。 */
 .xscroll{overflow-x:auto;overflow-y:hidden;padding-bottom:.2em}
 
+/* ————— P18 件一 · 文档滚动锁（治「上滑时下方冒大块黑块阻挡内容」）—————
+   定罪（实测）：移动端墙走静态流（@media≤900 的 body{height:auto;overflow-y:auto}），body 因此长达数千 px
+   （k_gs1_01 实测 6792px）；进房/进册子只设了 body.style.overflow="hidden"，而 html{overflow-x:hidden}
+   已让 html 的 overflow-y 计算成 auto ⇒ 按 CSS 规范 body 的 overflow 不再传播到视口、**根滚动器是 html**，
+   于是房开着时文档照样能滚整整一堵墙（实测 documentElement.scrollTop=300 生效）。
+   iOS 上根文档一旦可滚：①Safari 才会在上滑时收放地址栏 ②惯性滚动期间 position:fixed 的 #room/#page
+   随视觉视口漂移且不实时重绘 ⇒ 屏幕下方露出等高的 body 纯黑底、内容不再跟着走＝用户说的「大块黑块阻挡」。
+   修：开房/开册子即 docLock(true) 两保——①根滚动器 overflow:hidden 锁死（标准解）②移动静态流墙三件收起，
+   body 高度物理塌成 0（iOS 万一忽略 html{overflow:hidden}，也根本无处可滚）；退出即解锁并复原原滚动位置。
+   桌面/iPad（>900px 墙本就 fixed、body height:100vh overflow:hidden）文档本无可滚高度，此锁对其恒等无副作用。 */
+html.lockdoc{overflow:hidden}
+html.lockdoc body{overflow:hidden}
+@media(max-width:900px){html.lockdoc #mhead,html.lockdoc #plan,html.lockdoc #wall{display:none}}
+
 @media(max-width:820px),(pointer:coarse){
   #mhead{display:block}
   #hud{display:none}                 /* 内容由 #mhead 接管（标题/倒计时/册子入口） */
@@ -1184,7 +1208,67 @@ function fitWide(root){
     });
   }catch(err){}
 }
-function markView(){VRT=now();fitWide();}
+/* ————— P18 件二 · 转屏按内容锚复位（治「横竖屏切一轮后所处位置不同」）—————
+   机理：转屏 → 视口宽变 → 行高/折行/公式换行全变 → 内容总高变，而浏览器按**像素** scrollTop 恢复 ⇒ 锚点漂。
+   修：宽显著变化（>15%）时按内容锚复位——拿变化**前**记下的「视口顶部最近的定位单元 ＋ 它到滚动容器顶的偏移」，
+   变化后把同一单元瞬时滚回同一偏移（零动画，不是 smooth）。保偏移优于裸 scrollIntoView：单元本身很长、
+   顶部已滚出视口时，scrollIntoView 会把人弹回该单元开头，保偏移才真是「原地」。
+   定位单元集＝P16 c.pos 拍内锚那一族（讲解节/跟算步/推导卡/图讲/微测/题面…），但**取叶子级块**
+   （节题、正文段、独立公式、列表项、步、卡…）而非整节 .sec——一节常跨好几屏，拿它作锚时「顶部同偏移」
+   落到的行会随折行数变化而错开半屏；叶子级块才真是「±一行」。找不到叶子级时回落 .sec（骨架关等）。
+   墙视图同理取叶子级 .row/.chd/.bl，回落章簇 .cluster。
+   快照＝滚动停 100ms 后与每次渲染后各记一次（转屏前手早已停），并记下拍摄时的视口宽：
+   复位判据是「当前宽 vs **快照宽**」而非「上一次 resize 的宽」——置/撤钳会连锁多次 resize，
+   拿上一次宽作基准会被中间态吃掉判据（实测就是这么漏的）。纯内存零落盘：c.pos 照旧只由 posSave 写。 */
+var RKSEL="#rin .sech,#rin .rbody>p,#rin .rbody>ul,#rin .rbody>ol,#rin .rbody>blockquote,"
+  +"#rin .katex-display,#rin .step,#rin .drv,#rin .fig,#rin .mc,#rin .check,#rin .trig,#rin .ctab,"
+  +"#rin .dstem,#rin .dans,#rin .dfig,#rin .revq,#rin .figsay,#rin .opt,#rin .atom,#rin .track,"
+  +"#rin .ovmap li,#rin .pit,#rin .judge,#rin .why,#rin .sqgh,#rin .sqi,#rin .qrow";
+var RKFB="#rin .sec[data-si],#rin .rbody,#rin .rev";
+var WKSEL="#wall .row,#wall .chd,#wall .bl";
+var WKFB="#wall .cluster,#wall .band";
+var RSNAP=null,ROTDEB=0,ROTFRZ=0;
+/* 锚的量＝「视口顶线切在这个块的百分之几」而非「这个块的顶在顶线上方几像素」：
+   转屏后同一块的高度必变（折行数变了），按像素保偏移会让长块内的读点跑掉半屏，按**比例**才是原处。
+   短块（顶线正好落在块首）ratio≈0，退化成对齐块顶，与直觉一致。 */
+function firstBelow(sel,top){
+  var els=$$(sel);
+  for(var i=0;i<els.length;i++){
+    var r=els[i].getBoundingClientRect();
+    if(r.height>0&&r.bottom>top+2)return {el:els[i],dy:r.top-top,rat:Math.max(0,Math.min(1,(top-r.top)/r.height))};
+  }
+  return null;
+}
+function topUnit(){
+  var rm=$("#room"),host=null,sel=WKSEL,fb=WKFB,top=0;
+  if(R&&rm&&!rm.classList.contains("hide")){host=rm;sel=RKSEL;fb=RKFB;top=rm.getBoundingClientRect().top;}
+  var u=firstBelow(sel,top)||firstBelow(fb,top);
+  if(!u)return null;
+  u.host=host;u.iw=window.innerWidth||0;
+  return u;
+}
+function rotSnap(){try{RSNAP=topUnit();}catch(e){RSNAP=null;}}
+/* 冻结窗（ROTFRZ）：转屏本身会让浏览器改 scrollTop 并派发 scroll，那一路 scroll 若照常刷新快照，
+   「变化前的锚」当场就被「已经漂掉的位置」顶掉，复位判据随之失效（实测就是这么漏的第二回）。
+   故 resize 一起就冻住快照，直到复位落定再主动重取一次作为新方向的基准。 */
+function rotBump(){
+  if(ROTFRZ&&now()<ROTFRZ)return;
+  clearTimeout(ROTDEB);ROTDEB=setTimeout(function(){if(ROTFRZ&&now()<ROTFRZ)return;rotSnap();},100);
+}
+function rotRestore(){
+  var s=RSNAP;if(!s||!s.el||!s.el.isConnected)return;
+  try{
+    var r=s.el.getBoundingClientRect(),off=(s.rat||0)*r.height;   /* 新高度上的同比例读点 */
+    if(s.host){var rr=s.host.getBoundingClientRect();
+      s.host.scrollTop=Math.max(0,s.host.scrollTop+(r.top-rr.top)+off);}
+    else{var de=document.documentElement;de.scrollTop=Math.max(0,de.scrollTop+r.top+off);}
+  }catch(e){}
+}
+function rotWidthChanged(){   /* 与**快照拍摄时**的宽相比，超 15% 才算「转屏级」变化 */
+  var s=RSNAP,nw=window.innerWidth||0;
+  return !!(s&&s.iw&&nw&&Math.abs(nw-s.iw)/s.iw>0.15);
+}
+function markView(){VRT=now();fitWide();rotBump();}
 function misTap(){
   var t=now();
   if(t-VRT<GUARD_MS)return true;      /* 刚渲出来就被点：手是冲着上一屏去的 */
@@ -1363,6 +1447,27 @@ function cleanSet(on){
 }
 function cleanToggle(){cleanSet(!document.body.classList.contains("clean"));}
 
+/* ————— P18 件一 · 文档滚动锁（黑块根治；机理详见同名 CSS 块的长注）—————
+   房/册子＝fixed 全屏层，它们在场时根文档一格都不该能滚。幂等（重复上锁不覆写记忆位），
+   解锁时把墙复原到进房前那一处（rAF 补一次：墙三件刚从 display:none 回来，首帧布局可能还没落定）。 */
+var DOCY=0;
+function docLock(on){
+  var de=document.documentElement;if(!de)return;
+  var cur=de.classList.contains("lockdoc");
+  if(on){
+    if(cur)return;
+    DOCY=de.scrollTop||window.pageYOffset||0;
+    de.classList.add("lockdoc");
+    if(de.scrollTop)de.scrollTop=0;   /* 文档回顶＝fixed 全屏层与视觉视口严丝合缝，iOS 惯性期不露底 */
+  }else{
+    if(!cur)return;
+    de.classList.remove("lockdoc");
+    var y=DOCY;DOCY=0;
+    if(y){var put=function(){try{if(Math.abs(de.scrollTop-y)>1)de.scrollTop=y;}catch(e){}};
+          put();try{requestAnimationFrame(put);}catch(e){}}
+  }
+}
+
 /* ————— 房的开合（DOM 级，不动 history；导航一律走下方层栈）————— */
 function reviewable(l){ /* 复习件在不在：方法关有 fresh、概念关有微测；皆无者复现即重读 */
   return !!(l&&l.teach&&(((l.fresh||[]).length)||mcKeys(l).length));
@@ -1374,7 +1479,7 @@ function roomOpen(id,rv){
   $("#room").classList.remove("hide");document.body.classList.add("rmopen");
   cleanSet(false);             /* P16 件六：进房默认显示细行（可发现性） */
   lastkSet(id);                /* P16 件三：应用级指针＝上次在哪一关 */
-  document.body.style.overflow="hidden";
+  document.body.style.overflow="hidden";docLock(true);   /* P18 件一：根滚动器同锁（body 那句管不着 html） */
   if(rv&&reviewable(l)){
     if((l.fresh||[]).length){R={level:l,kind:l.kind,phases:["review"],pi:0,committed:{},revealed:{},mode:"review"};renderReview();}
     else {R={level:l,kind:l.kind,phases:["rmc"],pi:0,committed:{},revealed:{},mode:"review"};renderReviewMc();}
@@ -1397,6 +1502,7 @@ function roomClose(){
   $("#room").classList.add("hide");R=null;
   document.body.classList.remove("rmopen");cleanSet(false);
   document.body.style.overflow=mqStatic()?"auto":"hidden";
+  docLock(false);              /* P18 件一：解锁并把墙复原到进房前那一处 */
 }
 /* 下行入口（压层＋开房）；closeRoom 保名不变（KyEv 适配器与旧调用方都认它）＝上行一层 */
 function openLevel(id){if(!byId[id])return;navGo({v:"room",k:id});roomOpen(id,0);}
@@ -2224,10 +2330,11 @@ function reviewJudge(ok){
 /* ===================== 册子页（速查册 / 触发器册 / 错题档 / 真题册） ===================== */
 function showPage(h){$("#pin").innerHTML=h;$("#page").classList.remove("hide");
   document.body.classList.add("pgopen");   /* P16 件一：册子页仍留字号浮钮（首页把它收进「?」弹层） */
-  document.body.style.overflow="hidden";$("#page").scrollTop=0;markView();}
+  document.body.style.overflow="hidden";docLock(true);   /* P18 件一：册子也是 fixed 全屏层，同锁 */
+  $("#page").scrollTop=0;markView();}
 function closePage(){if($("#page").classList.contains("hide"))return;
   $("#page").classList.add("hide");document.body.classList.remove("pgopen");
-  if(!R)document.body.style.overflow=mqStatic()?"auto":"hidden";}
+  if(!R){document.body.style.overflow=mqStatic()?"auto":"hidden";docLock(false);}}
 /* ————— 速查册（P15 件二）：目录（章→节两级）＋正文（节题＋条目一条一行），KaTeX 全渲 ————— */
 function sqCheck(bk){ /* 结构闸（selftest ⑱ 与 verify_content_math.py 同口径；空册合法＝内容未到不拦） */
   if(!bk||typeof bk!=="object"||!Array.isArray(bk.chapters))return "formulas.chapters 非数组";
@@ -2483,8 +2590,20 @@ function wireEvents(){
   });
   var figRz=0;
   window.addEventListener("resize",function(){   /* 转屏/改窗：图讲字号点径按新缩放重钉 + 导航条按新宽度换容器（无动画） */
-    clearTimeout(figRz);figRz=setTimeout(function(){figMountAll();fitWide();if(R)renderNav();},120);
+    ROTFRZ=now()+1400;clearTimeout(ROTDEB);      /* P18 件二：先冻住锚快照（详见 rotBump 上方长注） */
+    clearTimeout(figRz);figRz=setTimeout(function(){
+      figMountAll();fitWide();if(R)renderNav();
+      /* P18 件二：宽较**快照宽**显著变化（转屏／置撤钳）才按内容锚复位；复位排在重钉与重渲之后
+         （它们会改布局）。220/520ms 各补一次＝接住 KaTeX 字体、图讲 SVG 与钳态两段式落定带来的
+         二次高度变化（同 anchorSettle 的道理）；复位幂等，多跑几次只是更贴齐。
+         落定后解冻并重取一次锚＝新方向的基准，下次转回去才判得出「宽变了」。 */
+      if(rotWidthChanged()){
+        rotRestore();setTimeout(rotRestore,220);setTimeout(rotRestore,520);
+        setTimeout(function(){ROTFRZ=0;rotSnap();},760);
+      }else{ROTFRZ=0;rotBump();}
+    },120);
   });
+  window.addEventListener("scroll",function(){if(!R)rotBump();},{passive:true}); /* 墙（静态流）滚动即刷快照 */
   $("#gvn").onclick=function(){document.body.classList.toggle("gv");};
   $("#exBtn").onclick=openExam;
   $("#refBtn").onclick=openRef;
@@ -2511,8 +2630,9 @@ function wireEvents(){
     },true);
     rm.addEventListener("pointercancel",function(){armed=false;},true);
   })();
-  /* P16 件三：滚动即锚变（防抖 3s 落位）；离页/切后台即刻落位，回来才接得上 */
-  $("#room").addEventListener("scroll",function(){posBump();},{passive:true});
+  /* P16 件三：滚动即锚变（防抖 3s 落位）；离页/切后台即刻落位，回来才接得上
+     P18 件二：同一处顺手刷「转屏复位快照」（防抖 100ms，纯内存不落盘） */
+  $("#room").addEventListener("scroll",function(){posBump();rotBump();},{passive:true});
   document.addEventListener("visibilitychange",function(){if(document.hidden){try{posSave();}catch(e){}}});
   window.addEventListener("pagehide",function(){try{posSave();}catch(e){}});
   $("#room").addEventListener("scroll",function(){ /* 开章收墙的读到底闸 */
@@ -3072,6 +3192,49 @@ function stepFz(k){ /* 字号步进（委托口径：浮钮与房内展开条同
 applyFz();
 window.addEventListener("ky:reclamp",applyFz); /* 置/撤钳（转屏/窄屏）即重算生效字号 */
 
+/* ————— P18 件一（共犯）· 窄屏钳迟滞版（adapter_math.js 已置 mobile.noClamp=true，职责整个搬到这里）—————
+   sync_core 的原判据 `innerWidth<500` 是**自反**的：钳上 width=500 后 innerWidth 恰好读回 500，
+   500<500 为假 ⇒ 立刻撤钳 ⇒ 读回 428 ⇒ 再钳……428pt 机上实测每 ~125ms 一次、10 秒内 84 次视口切换、
+   83 次 resize 事件；缩放比在 1.000/1.168 之间跳，#room clientHeight 926⇄1082、scrollHeight 11214⇄11968，
+   滚动位置随之乱窜——它既是黑块的放大器（iOS 每次改 viewport meta 都重建滚动/合成层），
+   也是件二「转屏一轮位置就不同」的第二个源头。vocab 追记十五已记此坑「真机未证」，本轮真机症状对上了。
+   修：以「配置键＝屏幕尺寸+方向」作迟滞——同一配置下判定一次即锁，绝不来回；
+   配置真变了（转屏/改窗/分屏）才撤钳、60ms 后按真实 innerWidth 复判一次定案。
+   保住原有正确行为：横屏 926pt 仍会撤钳（否则成 1.85x 放大镜），__KY_CLAMPED 与 ky:reclamp 广播口径不变。
+   公共正本 sync_core.js 一字未改，故 408/五更书/词汇三壳不受影响。 */
+var CLW=500,CLKEY=null,CLRZ=0;
+function vpMeta(){
+  var m=document.querySelector("meta[name=viewport]");
+  if(!m){m=document.createElement("meta");m.setAttribute("name","viewport");document.head.appendChild(m);}
+  return m;
+}
+function clampKey(){
+  var s=window.screen||{};
+  return [s.width||0,s.height||0,mq("(orientation:landscape)")?"L":"P"].join("x");
+}
+function setClamp(on){
+  var m=vpMeta();
+  var want=on?"width=500, viewport-fit=cover":"width=device-width, initial-scale=1, viewport-fit=cover";
+  if(m.getAttribute("content")!==want)m.setAttribute("content",want);
+  if(window.__KY_CLAMPED!==on){window.__KY_CLAMPED=on;
+    try{window.dispatchEvent(new Event("ky:reclamp"));}catch(e){}}
+}
+function mReclamp(){
+  var k=clampKey();
+  if(window.__KY_CLAMPED){
+    if(k===CLKEY)return;                        /* 同配置已判定过：保持钳态，振荡断根 */
+    setClamp(false);CLKEY=null;                 /* 配置变了：先撤钳，60ms 后按真实 innerWidth 复判 */
+    setTimeout(mReclamp,60);return;
+  }
+  setClamp((window.innerWidth||9999)<CLW);
+  CLKEY=k;
+}
+try{
+  mReclamp();
+  window.addEventListener("orientationchange",function(){clearTimeout(CLRZ);CLRZ=setTimeout(mReclamp,120);});
+  window.addEventListener("resize",function(){clearTimeout(CLRZ);CLRZ=setTimeout(mReclamp,120);});
+}catch(e){}
+
 function boot(){
   if(Q.has("reset")){
     if(confirm("清空数学宇宙存档？")){localStorage.removeItem(SAVE);localStorage.removeItem(WRONG);}
@@ -3125,6 +3288,10 @@ function boot(){
     /* P16 句柄：续学/回看/纯净态（自查与截图用；只读或与 UI 同路，不新开旁门） */
     bootTarget:bootTarget,posClamp:posClamp,posSave:posSave,lastkSet:lastkSet,get anchN(){return ANCHN;},
     drawMHead:drawMHead,mqRead:mqRead,cleanToggle:cleanToggle,tocHtml:tocHtml,
+    /* P18 句柄：文档锁 / 转屏锚 / 窄屏钳（自查与截图用；只读或与 UI 同路，不新开旁门） */
+    docLock:docLock,topUnit:topUnit,rotSnap:rotSnap,rotRestore:rotRestore,mReclamp:mReclamp,
+    get rotSnapshot(){return RSNAP;},
+    get docLocked(){return document.documentElement.classList.contains("lockdoc");},
     get NAVN(){return NAVN;},get layer(){try{return history.state;}catch(e){return null;}}};
 }
 boot();
@@ -3205,7 +3372,7 @@ boot();
   $$(".cells").forEach(mount);   /* boot 期已渲的章簇框补挂（后续 buildWall 各自补挂新簇框） */
 })();
 </script>
-<!--KY-SYNC-BEGIN core+evlog+adapter_math.js @364c51198a 由 tools/app/inject_shells.py 注入；正本在 tools/app/，改正本后重跑注入器再跑 build 管线-->
+<!--KY-SYNC-BEGIN core+evlog+adapter_math.js @e9284b55c8 由 tools/app/inject_shells.py 注入；正本在 tools/app/，改正本后重跑注入器再跑 build 管线-->
 <script src="sync_cfg.js"></script>
 <script>
 /* ============================================================================
@@ -3928,7 +4095,11 @@ window.KyEv = (function () {
        set:function(d){WB=d;try{localStorage.setItem(WRONG,JSON.stringify(WB));}catch(e){}}}
     ],
     applied:function(){try{if(!R){if(typeof buildWall==="function")buildWall();if(typeof drawPlan==="function")drawPlan();}}catch(e){}},
-    mobile:{}
+    /* P18 件一（共犯）：noClamp——sync_core 的窄屏钳判据 `innerWidth<500` 是自反的（钳到 width=500 后
+       innerWidth 恰好读回 500 ⇒ 立刻撤钳 ⇒ 428 ⇒ 再钳），428pt 机上实测每 ~125ms 振荡一次、
+       10s 内 84 次视口切换，滚动位置随之乱窜。数学壳改由 math.html 自带的 mReclamp() 接管（配置键迟滞版），
+       公共正本 sync_core.js 一字未改，408/五更书/词汇三壳照旧走原路。 */
+    mobile:{noClamp:true}
   });
   /* 历史栈：P15 件四起由 math.html 自带层栈接管（history.state 即层 payload、popstate 单点渲染、
      处理器内零同步 pushState），故此处**不再挂 KySync.histShim**——两套并存会互相补签打架，
