@@ -488,20 +488,40 @@ body.mapw #pin{max-width:82rem}
 /* 图容器：装得下就整层居中零横滚；装不下（窄屏／大字号／宽章）就在自己容器里横滑
    ——SPEC 授权的「移动端容器内滚」，滚动条全局已隐，文档级 overflow-x 照旧钉死不晃。 */
 .mapbox{min-width:0;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y}
+/* 真能横滚时才挂右缘渐隐＝可滑暗示（同墙 .cells／#mchips 手法；装得下时不挂，最右一列不被吃） */
+.mapbox.xscr,.bmsub.xscr{mask-image:linear-gradient(90deg,#000 96%,transparent);
+  -webkit-mask-image:linear-gradient(90deg,#000 96%,transparent)}
 .bmsvg{display:block;max-width:none}
 .bmsvg .bmn{cursor:pointer}
-.bmsvg .bmr{fill:rgba(255,255,255,.013)}
+/* 节点盒填 --paper 实色（**不是半透明**）：先画边后画节点，实色才遮得住从盒上穿过的连线；
+   底本就是纯黑，实色与半透明视觉等价却不压字（首版半透明 .013 被实拍抓到线穿件名）。 */
+.bmsvg .bmr{fill:var(--paper)}
 .bmsvg .bmt{font-family:var(--cjk)}
 .bmsvg .bmk{font-family:var(--mono);fill:var(--faint)}
-.bmsvg .bmly{font-family:var(--mono);fill:var(--faint2)}
+.bmsvg .bmly{font-family:var(--mono);fill:var(--faint)}     /* 层号：次要标尺 */
+.bmsvg .bmch{font-family:var(--cjk);fill:var(--dim)}        /* 小地图列标：三栏语义的唯一标识，须读得出 */
 .bmsvg .bme{fill:none}
 .bmsvg .bmhit{fill:none;stroke:transparent;stroke-width:11;cursor:pointer}
-.bmsvg .dim{opacity:.15}
-.bmsvg .bmn.sel .bmr{fill:rgba(216,191,138,.055)}
-@media(hover:hover){.bmsvg .bmn:hover .bmr{fill:rgba(255,255,255,.04)}}
+.bmsvg .dim{opacity:.28}                                     /* 压暗但不抹掉：大地图的价值在「看清它在整体里的位置」 */
+.bmsvg .bmn.sel .bmr{fill:#0c0b08;stroke:var(--gold)}        /* #0c0b08＝rgba(216,191,138,.055) 叠纯黑的等效实色 */
+.bmsvg .bmn.sel .bmt{fill:var(--txt)}                        /* 焦点件的名字必须最亮（金留给精通与连边，不撞语义） */
+@media(hover:hover){.bmsvg .bmn:hover .bmr{fill:#0a0a0a}}
+/* 四态染色与五种线型一律走 CSS class，**不写进 SVG presentation attribute**——
+   属性里的 var() 至今是规范未定区（各引擎不一致），math 已上 iOS 主屏 PWA，
+   一旦不解析就回落 fill=black＝纯黑底上整图无字。CSS 声明里的 var() 才是标准行为。 */
+.bmsvg .bmr.p0{stroke:var(--skel)}   .bmsvg .bmt.p0{fill:var(--s0)}
+.bmsvg .bmr.p1{stroke:var(--s0)}     .bmsvg .bmt.p1{fill:var(--s1)}
+.bmsvg .bmr.p2{stroke:#4c4331}       .bmsvg .bmt.p2{fill:var(--gold)}
+.bmsvg .bmr.p3{stroke:#3e3b2d}       .bmsvg .bmt.p3{fill:var(--dun)}
+.bmsvg .r1 .bme{stroke:#454b57}                          .bmsvg .r1 polygon{fill:#454b57}
+.bmsvg .r2 .bme{stroke:#343a45;stroke-dasharray:5 4}     .bmsvg .r2 polygon{fill:#343a45}
+.bmsvg .r3 .bme{stroke:var(--faint2)}                    .bmsvg .r3 polygon{fill:var(--faint2)}
+.bmsvg .r4 .bme{stroke:#343a45;stroke-dasharray:1.6 3.4} .bmsvg .r4 polygon{fill:#343a45}
+.bmsvg .bmeg.on .bme{stroke:var(--gold);stroke-width:1.25;opacity:.66}
+.bmsvg .bmeg.on polygon{fill:var(--gold);opacity:.66}
 /* 详情面板（桌面＝右侧栏 sticky；移动＝内容流末尾 sticky 贴底，见下方纯读块） */
 .mappan{border:1px solid var(--hair);border-radius:4px;padding:.6rem .8rem;position:sticky;top:.6rem;
-  background:var(--paper);min-height:7.5rem}
+  background:var(--paper);min-height:11rem}   /* 高度给足：桌面鼠标扫图时右栏换装不来回伸缩 */
 .mappan .bmpk{font-family:var(--mono);font-size:.58rem;letter-spacing:.16em;color:var(--faint)}
 .mappan .bmpt{font-family:var(--cjk);font-size:.9rem;color:var(--txt);line-height:1.5;margin:.28rem 0 .35rem}
 .mappan .bmpw{font-family:var(--cjk);font-size:.8rem;color:var(--s1);line-height:1.78}
@@ -509,12 +529,13 @@ body.mapw #pin{max-width:82rem}
 .mappan .bmpl b{font-family:var(--cjk);letter-spacing:.02em;color:var(--dim);font-weight:400}
 .mappan .bmpn{font-family:var(--cjk);font-size:.72rem;color:var(--dim);line-height:1.7;margin-top:.42rem;
   border-top:1px solid var(--hair);padding-top:.4rem}
-.mappan .bmpn i{color:var(--faint);font-family:var(--mono);font-size:.56rem;letter-spacing:.1em;margin-right:.3rem}
+.mappan .bmpn>i{color:var(--faint);font-family:var(--mono);font-size:.56rem;letter-spacing:.1em;margin-right:.3rem}
+.mappan .bmpn i{color:var(--faint);font-family:var(--mono);font-size:.54rem;letter-spacing:.1em;margin:0 .1rem 0 .22rem}
 .mappan .bmpgo{display:inline-block;margin-top:.55rem;font-family:var(--mono);font-size:.62rem;
   letter-spacing:.12em;color:var(--dim);border:1px solid var(--line);padding:.24rem .7rem;border-radius:3px}
 .mappan .bmpgo:hover{color:var(--gold);border-color:#3a3524}
 .mappan .bmpe{color:var(--faint);font-family:var(--cjk);font-size:.78rem;line-height:1.75}
-.maplg{font-family:var(--cjk);font-size:.58rem;letter-spacing:.04em;color:var(--faint2);line-height:1.9;
+.maplg{font-family:var(--cjk);font-size:.58rem;letter-spacing:.04em;color:var(--faint);line-height:1.9;
   margin-top:.75rem;display:flex;flex-wrap:wrap;gap:.1rem .8rem}
 .maplg s{display:inline-flex;align-items:center;gap:.28rem;text-decoration:none}
 .maplg u{display:inline-block;width:22px;height:0;border-top-width:1px;text-decoration:none;flex:none}
@@ -784,7 +805,8 @@ html.lockdoc body{overflow:hidden}
   .mapv{grid-template-columns:minmax(0,1fr);gap:.3rem}
   .mappan{position:sticky;top:auto;bottom:0;border:none;border-top:1px solid var(--line);
     border-radius:0;min-height:5rem;background:var(--paper);
-    padding:.55rem .2rem calc(1.9rem + var(--sab))}
+    padding:.55rem .2rem calc(1.9rem + var(--sab));
+    max-height:42vh;overflow-y:auto;overscroll-behavior:contain}   /* 极端字号下面板不吞屏（fz2.4 实测 427px），超出自己内滚 */
 }
 
 /* ————— P16 件七 A · iPad（触屏且 ≥901px：iPad Pro 12.9 竖 1024 / 横 1366，含分屏 981）—————
@@ -2626,12 +2648,11 @@ var BMRELS={"推出":1,"工具":1,"服务":1,"同源":1,"特例":1};
 /* rel 一句人话（原文出自 buildmap._meta 的关系定义，非壳侧编造） */
 var BMSAY={"推出":"由它证得／长出","工具":"施工时要用它","服务":"它存在就是为了这件事",
            "同源":"同一件事的两副面孔","特例":"取特殊值即得"};
-/* 线型：推出实线（略亮）／工具虚线／服务极暗实线／同源·特例点线。灰阶克制，唯选中转金。 */
-var BMLINE={"推出":{c:"#454b57",d:""},"工具":{c:"#343a45",d:"5 4"},"服务":{c:"#22262e",d:""},
-            "同源":{c:"#343a45",d:"1.6 3.4"},"特例":{c:"#343a45",d:"1.6 3.4"}};
-/* 四态色目冻结（宪法五）：沉墨/半明/金/蒙尘，描边取同阶灰、文字直用既有变量 */
-var BMPC={unlearned:{s:"#2c313b",t:"var(--s0)"},learned:{s:"#3f454f",t:"var(--s1)"},
-          mastered:{s:"#4c4331",t:"var(--gold)"},dusty:{s:"#3e3b2d",t:"var(--dun)"}};
+/* 线型（class → CSS）：推出实线略亮 r1／工具虚线 r2／服务极暗实线 r3／同源·特例点线 r4。
+   四态染色（class → CSS）：p0 未学沉墨／p1 学过半明／p2 精通金／p3 蒙尘哑金。
+   **一律不写 SVG presentation attribute**——属性里的 var() 是规范未定区，见 CSS 段长注。 */
+var BMLINE={"推出":"r1","工具":"r2","服务":"r3","同源":"r4","特例":"r4"};
+var BMPC={unlearned:"p0",learned:"p1",mastered:"p2",dusty:"p3"};
 var BMSTN={unlearned:"未学",learned:"学过",mastered:"精通",dusty:"蒙尘"};
 function bmBook(){var b=M&&M.buildmap;return (b&&Array.isArray(b.chapters))?b:{chapters:[]};}
 function bmChapters(){return bmBook().chapters;}
@@ -2655,6 +2676,11 @@ function bmOfLevel(lid){ /* 关 id → 挂着它的章图（扫 at 而非信 l.c
   var chs=bmChapters(),i;
   for(i=0;i<chs.length;i++)if(bmNodesAt(chs[i],lid).length)return chs[i];
   return null;
+}
+function bmDefaultCh(){ /* 缺省章＝「当前章」（上次在学那一关所属章，其图在库才算），否则第一章 */
+  var lk=S&&S.meta&&S.meta.lastk,l=(lk&&byId[lk.k])||null;
+  if(l&&bmChapter(l.chapter))return l.chapter;
+  return "";
 }
 /* ————— 结构闸（selftest ⑳ 与 verify_content_math.py 同口径；空图合法＝内容未到不拦）————— */
 function bmCheck(where,ch){
@@ -2769,7 +2795,11 @@ function bmOrder(ch,lay){
 /* ————— 度量：字宽实测与折行（SVG 无自动折行，必须自己切）—————
    走 canvas measureText 拿真宽（字体取 --cjk 正本），单字符结果缓存；canvas 不可用才回落估值。
    估值曾把 ∫ 之类数学符号按半角算，实测在宋体族里是全角 ⇒ 文字冲出盒外（本轮实拍抓到）。 */
-function bmScale(){var f=fzEff()||1;return Math.min(1.7,Math.max(.85,f));}
+function bmScale(){var f=fzEff()||1;return Math.min(2.0,Math.max(.85,f));}   /* 域给宽，图爆宽由横滚吸收 */
+function bmScrHint(el){ /* 真能横滚才挂右缘渐隐（装得下时不挂，最右一列不被吃掉） */
+  if(!el)return;
+  try{el.classList[(el.scrollWidth>el.clientWidth+2)?"add":"remove"]("xscr");}catch(e){}
+}
 function bmCw(c){var x=c.charCodeAt(0);
   if(x<0x2000)return 0.58;                                   /* 拉丁/数字/常用标点 */
   if(x>=0xff61&&x<=0xff9f)return 0.55;                        /* 半角片假名 */
@@ -2848,22 +2878,22 @@ function bmLayout(ch,W){
 /* ————— 绘制原件：节点盒 / 边 ————— */
 function bmNodeSvg(id,LO,cls,t){
   var d=LO.N[id];if(!d||!d.n)return "";
-  var n=d.n,pc=BMPC[byId[n.at]?progressOf(n.at,t):"unlearned"]||BMPC.unlearned;
+  var n=d.n,pc=BMPC[byId[n.at]?progressOf(n.at,t):"unlearned"]||"p0";
   var h='<g class="bmn'+(cls?" "+cls:"")+'" data-act="bmnode" data-id="'+esc(id)+'">'
     +"<title>"+esc(n.t+" · "+n.why)+"</title>"
-    +'<rect class="bmr" x="'+fnum(d.x)+'" y="'+fnum(d.y)+'" width="'+fnum(d.w)+'" height="'+fnum(d.h)
-    +'" rx="4" ry="4" stroke="'+(cls==="sel"?"var(--gold)":pc.s)+'"/>'
+    +'<rect class="bmr '+pc+'" x="'+fnum(d.x)+'" y="'+fnum(d.y)+'" width="'+fnum(d.w)
+    +'" height="'+fnum(d.h)+'" rx="4" ry="4"/>'
     +'<text class="bmk" x="'+fnum(d.x+LO.PX)+'" y="'+fnum(d.y+LO.FK+4*LO.sc)+'" font-size="'+fnum(LO.FK)+'">'
     +esc(BMKIND[n.k]||"·")+"</text>";
   d.lines.forEach(function(s,i){
-    h+='<text class="bmt" x="'+fnum(d.x+LO.PX)+'" y="'+fnum(d.y+LO.PT+(i+1)*LO.LH-3*LO.sc)
-      +'" font-size="'+fnum(LO.FS)+'" fill="'+pc.t+'">'+esc(s)+"</text>";
+    h+='<text class="bmt '+pc+'" x="'+fnum(d.x+LO.PX)+'" y="'+fnum(d.y+LO.PT+(i+1)*LO.LH-3*LO.sc)
+      +'" font-size="'+fnum(LO.FS)+'">'+esc(s)+"</text>";
   });
   return h+"</g>";
 }
 function bmEdgeSvg(e,i,LO,mode,horiz){
   var a=LO.N[e.f],b=LO.N[e.to];if(!a||!b)return "";
-  var ln=BMLINE[e.rel]||BMLINE["工具"],col=(mode==="on")?"var(--gold)":ln.c;
+  var ln=BMLINE[e.rel]||"r2";
   var x1,y1,x2,y2,d,ar;
   if(horiz){                                   /* 小地图三栏：左 → 右 */
     x1=a.x+a.w;y1=a.y+a.h/2;x2=b.x;y2=b.y+b.h/2;
@@ -2876,10 +2906,9 @@ function bmEdgeSvg(e,i,LO,mode,horiz){
     d="M"+fnum(x1)+" "+fnum(y1)+"C"+fnum(x1)+" "+fnum(y1+dy)+" "+fnum(x2)+" "+fnum(y2-dy)+" "+fnum(x2)+" "+fnum(y2);
     ar=fnum(x2-3)+","+fnum(y2-4.8)+" "+fnum(x2+3)+","+fnum(y2-4.8)+" "+fnum(x2)+","+fnum(y2-0.6);
   }
-  return '<g class="bmeg'+(mode==="dim"?" dim":"")+'">'
-    +'<path class="bme" d="'+d+'" stroke="'+col+'" stroke-width="'+(mode==="on"?1.25:1)+'"'
-    +(mode==="on"?' opacity=".66"':"")+(ln.d?' stroke-dasharray="'+ln.d+'"':"")+"/>"
-    +'<polygon points="'+ar+'" fill="'+col+'"'+(mode==="on"?' opacity=".66"':"")+"/>"
+  return '<g class="bmeg '+ln+(mode==="dim"?" dim":(mode==="on"?" on":""))+'">'
+    +'<path class="bme" d="'+d+'" stroke-width="1"/>'
+    +'<polygon points="'+ar+'"/>'
     +'<path class="bmhit" d="'+d+'" data-act="bmedge" data-i="'+i+'"><title>'
     +esc(e.rel+" · "+e.why)+"</title></path></g>";
 }
@@ -2929,8 +2958,9 @@ function bmPanHtml(ch,sel,edge){
   var lv=byId[n.at],ups=[],dns=[];
   ((ch&&ch.edges)||[]).forEach(function(x){
     var o;
-    if(x.to===n.id&&(o=bmNodeById(ch,x.f)))ups.push(esc(o.t)+"（"+esc(x.rel)+"）");
-    if(x.f===n.id&&(o=bmNodeById(ch,x.to)))dns.push(esc(o.t)+"（"+esc(x.rel)+"）");
+    /* 关系走 mono 微签而非括号后缀——件名本身常自带括号，再套一层就成了双括号 */
+    if(x.to===n.id&&(o=bmNodeById(ch,x.f)))ups.push(esc(o.t)+"<i>"+esc(x.rel)+"</i>");
+    if(x.f===n.id&&(o=bmNodeById(ch,x.to)))dns.push(esc(o.t)+"<i>"+esc(x.rel)+"</i>");
   });
   return '<div class="bmpk">'+esc(n.k)+"</div>"
     +'<div class="bmpt">'+esc(n.t)+"</div>"
@@ -2963,6 +2993,7 @@ function mapFill(){
   if(!box||!ch)return;
   var w=Math.max(240,Math.round(box.clientWidth||box.getBoundingClientRect().width||760));
   box.innerHTML=bmMapSvg(ch,w,MAPV.sel,MAPV.hl);
+  bmScrHint(box);
   if(pan)pan.innerHTML=bmPanHtml(ch,MAPV.sel,MAPV.edge);
   mapWire();
 }
@@ -2986,7 +3017,7 @@ function mapWire(){
 }
 function mapPage(){showPage(mapHtml());document.body.classList.add("mapw");mapFill();}
 function openMap(chid,hl){
-  MAPV={ch:chid||"",sel:null,edge:null,hl:hl||null,bk:hl?"关":"墙"};
+  MAPV={ch:chid||bmDefaultCh(),sel:null,edge:null,hl:hl||null,bk:hl?"关":"墙"};
   goPage({v:"page",p:"map",ch:MAPV.ch,hl:MAPV.hl,bk:MAPV.bk},mapPage);
 }
 /* ————— 小地图：关内一阶子图（上游左／本关中／下游右）————— */
@@ -3037,8 +3068,8 @@ function bmSubLayout(sub,W){
 function bmSubSvg(sub,W,sel){
   var LO=bmSubLayout(sub,W),t=now(),body="",eg="",hd="";
   var focus=(sel&&LO.N[sel])?sel:null,nb={};
-  (LO.HDS||[]).forEach(function(h){    /* 列标：哪一栏是上游、哪一栏是本关、哪一栏是下游 */
-    hd+='<text class="bmly" x="'+fnum(h.x)+'" y="'+fnum(h.y)+'" font-size="'+fnum(LO.FK)+'">'
+  (LO.HDS||[]).forEach(function(h){    /* 列标：哪一栏是上游、哪一栏是本关、哪一栏是下游（三栏语义全靠它） */
+    hd+='<text class="bmch" x="'+fnum(h.x)+'" y="'+fnum(h.y)+'" font-size="'+fnum(LO.FK*1.15)+'">'
       +esc(h.t)+"</text>";
   });
   if(focus){nb[focus]=1;sub.E.forEach(function(e){if(e.f===focus||e.to===focus){nb[e.f]=1;nb[e.to]=1;}});}
@@ -3090,6 +3121,7 @@ function bmSubMount(root){ /* 两段式：入 DOM 后按实测容器宽出图（
   var sub=bmSub(box.getAttribute("data-bk"));if(!sub)return;
   var w=Math.max(200,Math.round(box.clientWidth||box.getBoundingClientRect().width||620));
   box.innerHTML=bmSubSvg(sub,w,BSEL);
+  bmScrHint(box);
   var pan=$(".bmspan",root&&root.querySelectorAll?root:document);
   if(pan)pan.innerHTML=bmSubPan(sub,BSEL);
 }
@@ -3795,14 +3827,19 @@ function selftest(){
     if(svg.indexOf("<rect")<0)return "大地图无节点盒";
     if(svg.indexOf("地基件")<0)return "件名未渲";
     if(svg.indexOf("<path")<0)return "大地图无边";
-    if(svg.indexOf("stroke-dasharray")<0)return "工具边未虚线";
     if(svg.indexOf('data-act="bmnode"')<0)return "节点不可点";
-    if(svg.indexOf("var(--gold)")>=0)return "无选中却上金";
+    /* 着色一律经 class（属性里的 var() 是规范未定区，见 CSS 段长注）：SVG 串里不许出现内联色 */
+    if(/(?:fill|stroke)="(?!none|transparent)/.test(svg))return "仍有内联着色属性（应全走 class）";
+    if(svg.indexOf('class="bmeg r2')<0)return "工具边未挂 r2（虚线线型 class）";
+    if(svg.indexOf('class="bmeg r1')<0)return "推出边未挂 r1（实线线型 class）";
+    if(svg.indexOf('class="bmr p0"')<0)return "未学件未挂 p0 染色 class";
+    if(svg.indexOf(" on\"")>=0||svg.indexOf("bmn sel")>=0)return "无选中却有高亮态";
     var sel=bmMapSvg(demo,760,"a",null);
-    if(sel.indexOf("var(--gold)")<0)return "选中未上金";
+    if(sel.indexOf('class="bmn sel"')<0)return "选中件未挂 sel";
+    if(sel.indexOf("bmeg r1 on")<0)return "选中件连边未转 on（金）";
     if(sel.indexOf("dim")<0)return "非邻件未压暗";
     var hlv=bmMapSvg(demo,760,null,"__y");        /* 关级高亮（小地图「看全图」入口用） */
-    if(hlv.indexOf("var(--gold)")<0)return "关级高亮未上金";
+    if(hlv.indexOf('class="bmn sel"')<0)return "关级高亮未生效";
     /* ③ 结构闸负控：坏件必被拦（含「推出」二环与三环） */
     function nd(id,k){return {id:id,t:"件"+id,k:k||"概念",at:"p",why:"角色一句"};}
     var neg=[
@@ -3845,7 +3882,19 @@ function selftest(){
       for(i=0;i<sub.up.length;i++)if(isM[sub.up[i].id])return "up 混入本关件";
       for(i=0;i<sub.dn.length;i++)if(isM[sub.dn[i].id])return "dn 混入本关件";
     }
-    /* ⑤ 缺件降级不炸：不存在的章/关、空图一律优雅缺席 */
+    /* ⑤ 缺省章＝当前章（lastk 所属章其图在库时）／否则第一章 */
+    var bakLk=S.meta.lastk;
+    S.meta.lastk=null;
+    if(bmDefaultCh()!=="")return "无 lastk 未落第一章";
+    if(lid){
+      S.meta.lastk={k:lid,ts:1};
+      var wantCh=(byId[lid]||{}).chapter;
+      if(bmChapter(wantCh)&&bmDefaultCh()!==wantCh)return "有 lastk 未落当前章";
+    }
+    S.meta.lastk={k:"__nope",ts:1};
+    if(bmDefaultCh()!=="")return "坏 lastk 未落第一章";
+    S.meta.lastk=bakLk;
+    /* ⑥ 缺件降级不炸：不存在的章/关、空图一律优雅缺席 */
     if(bmChapter("__nope")!==null)return "不存在的章未返 null";
     if(bmSub("__nope")!==null)return "无数据关子图未返 null";
     var noL=LEVELS.find(function(x){return x.teach&&!bmSub(x.id);});
@@ -3861,7 +3910,7 @@ function selftest(){
     }catch(ex){dm=ex.message;}
     M.buildmap=bakBM;
     if(dm)return dm;
-    /* ⑥ 投影律：选中/悬读纯内存，存档字节零增 */
+    /* ⑦ 投影律：选中/悬读纯内存，存档字节零增 */
     var bk9=localStorage.getItem(SAVE),bakSel=MAPV.sel,bakB=BSEL;
     MAPV.sel="__probe";BSEL="__probe";
     var af9=localStorage.getItem(SAVE);
@@ -4013,7 +4062,7 @@ function boot(){
     /* P18 句柄：文档锁 / 转屏锚 / 窄屏钳（自查与截图用；只读或与 UI 同路，不新开旁门） */
     docLock:docLock,topUnit:topUnit,rotSnap:rotSnap,rotRestore:rotRestore,mReclamp:mReclamp,
     /* P19 句柄：建构图（自查与截图用；只读或与 UI 同路，不新开旁门） */
-    bmBook:bmBook,bmChapter:bmChapter,bmCheck:bmCheck,bmLayers:bmLayers,bmLayout:bmLayout,
+    bmBook:bmBook,bmChapter:bmChapter,bmCheck:bmCheck,bmLayers:bmLayers,bmLayout:bmLayout,bmDefaultCh:bmDefaultCh,
     bmMapSvg:bmMapSvg,bmSub:bmSub,bmSubSvg:bmSubSvg,bmSaySub:bmSaySub,bmBlock:bmBlock,
     openMap:openMap,mapFill:mapFill,get MAPV(){return MAPV;},get BSEL(){return BSEL;},
     get rotSnapshot(){return RSNAP;},
