@@ -58,11 +58,12 @@ html,body{margin:0;padding:0;background:#000;color:#9a9aa2;min-height:100%;
   <div id="inst">手机装成 app：Safari 底部 分享 ▸「添加到主屏幕」——只在 Safari 里开，七天不访问会被系统清档；装成 app 免疫</div>
   <div id="foot">
     <span id="fzrow"><a id="fzm">A−</a> <span id="fzv">100%</span> <a id="fzp">A+</a></span><br>
-    <span id="bld">f23138f9</span> · <a id="upd">检查更新</a> <span id="upmsg"></span><br>
+    <span id="bld">38cd1f16</span> · <a id="upd">检查更新</a> <span id="upmsg"></span><br>
     右下 ⇅ 配置云档同步 · 三端同一份进度
   </div>
 </div>
 <script src="./sync_core.js"></script>
+<script src="./evsite_core.js"></script>
 <script>
 (function(){
 "use strict";
@@ -121,6 +122,9 @@ if(window.KySync){
     mobile:{noClamp:true}   /* 枢纽自身响应式，无需 500 视口钉 */
   });
 }
+/* 站群使用事件回传（M1）：枢纽页自身即一只站「灯下」；进各模块页由各壳自记其站名。
+   无 token 即静默（fail-closed）；?evtok=… 深链可一次性配 token（各 PWA 容器各配一次）。 */
+if(window.KyEvSite){try{KyEvSite.init({app:"灯下",blocked:function(){return false;}});}catch(e){}}
 /* iOS 未入主屏时给一行装法 */
 try{
   var ua=navigator.userAgent||"";
